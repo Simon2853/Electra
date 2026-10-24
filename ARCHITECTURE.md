@@ -1,6 +1,7 @@
 # Arquitectura de Electra
 
 > Revisión realizada el 23/10/2026 sobre el código de `app/src/main`.
+> **Autor:** Simón Muñoz · simon.munoz952@gmail.com
 
 Electra es una app Android nativa (Kotlin + Jetpack Compose) para que técnicos de terreno
 registren **pruebas eléctricas** sobre equipos (transformadores, relés, celdas, cables) y
@@ -211,3 +212,9 @@ Orden sugerido, de mayor a menor impacto:
    dependencias sin uso y centralizar colores en el tema.
 6. Navegación con rutas tipadas (`@Serializable`) de navigation-compose 2.8+ para evitar
    el `replace("{codigo}", …)` manual.
+
+---
+
+**Simón Muñoz**\
+simon.munoz952@gmail.com\
+23/10/2026
