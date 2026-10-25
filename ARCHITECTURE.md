@@ -1,5 +1,16 @@
 # Arquitectura de Electra
 
+> **Actualización 24/10/2026 (Evaluación Parcial 2).** Varios hallazgos de la §4 quedaron resueltos:
+> sesión persistente (`SesionPreferencias` + `startDestination` según sesión, Perfil accesible desde Home),
+> catálogo único de equipos (`CatalogoEquipos.EQUIPOS`), `Prueba.kt`/`Protocolo.kt` legados eliminados,
+> número de protocolo = mayor existente + 1, sin valores por defecto silenciosos en las rutas, Home con
+> datos reales (`HomeViewModel`), credenciales excluidas de los respaldos, colores en `ui/theme/Color.kt`
+> y dependencias sin uso eliminadas (Room, DataStore, window-size-class, MockK).
+> Paquetes nuevos: `validation/` (reglas puras por campo), `device/` (cámara, GPS, vibración, compartir)
+> y `ui/components/` (campo validado, selector, botón con carga, barra superior, animaciones).
+> La base `electra.db` pasa a la **versión 3** (columnas `foto_uri`, `latitud`, `longitud` en `pruebas`).
+> Ver [README.md](README.md) para el resumen de funcionalidades.
+
 > Revisión realizada el 23/10/2026 sobre el código de `app/src/main`.
 > **Autor:** Simón Muñoz · simon.munoz952@gmail.com
 

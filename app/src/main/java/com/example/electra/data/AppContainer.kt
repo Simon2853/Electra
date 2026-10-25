@@ -1,8 +1,9 @@
 package com.example.electra.data
 
 import android.content.Context
+import com.example.electra.device.ProveedorUbicacion
+import com.example.electra.device.ProveedorUbicacionAndroid
 
-/** Inyección manual de dependencias: una sola base de datos compartida por todos los repositorios. */
 class AppContainer(context: Context) {
 
     private val contexto = context.applicationContext
@@ -12,4 +13,6 @@ class AppContainer(context: Context) {
     val pruebas: PruebasRepository by lazy { SqlitePruebasRepository(db) }
     val protocolos: ProtocolosRepository by lazy { SqliteProtocolosRepository(db) }
     val usuarios: UsuariosRepository by lazy { LocalUsuariosRepository(contexto) }
+    val sesion: SesionRepository by lazy { SesionPreferencias(contexto) }
+    val ubicacion: ProveedorUbicacion by lazy { ProveedorUbicacionAndroid(contexto) }
 }

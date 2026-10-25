@@ -48,8 +48,6 @@ class PruebaDbHelperTest {
         observaciones = "Sin novedades"
     )
 
-    // --- PRUEBAS ---
-
     @Test
     fun insertarPrueba_yBuscarPorId_devuelveLosMismosDatos() {
         val id = db.insertarPrueba(prueba())
@@ -100,8 +98,6 @@ class PruebaDbHelperTest {
 
         assertEquals(listOf("CE-008", "RL-004"), db.obtenerEquiposConRegistros())
     }
-
-    // --- PROTOCOLOS ---
 
     @Test
     fun baseNueva_incluyeLosCuatroProtocolosSemilla() {
@@ -168,14 +164,11 @@ class PruebaDbHelperTest {
         assertEquals("Revisar conexiones", db.buscarProtocoloPorNumero("000122")?.observaciones)
     }
 
-    // --- MIGRACIÓN ---
-
     @Test
     fun onUpgrade_deVersion1CreaTablaProtocolosConSemilla() {
         db.close()
         contexto.deleteDatabase("electra.db")
 
-        // Base v1: solo existía la tabla de pruebas
         val ruta = contexto.getDatabasePath("electra.db").apply { parentFile?.mkdirs() }
         SQLiteDatabase.openOrCreateDatabase(ruta, null).use { v1 ->
             v1.execSQL(
@@ -195,5 +188,48 @@ class PruebaDbHelperTest {
 
         assertEquals(1, db.listarPruebas().size)
         assertEquals(4, db.listarProtocolos().size)
+    }
+
+    @Test
+    fun onUpgrade_deVersion2AgregaEvidenciaYCorrigeCodigos() {
+        db.close()
+        contexto.deleteDatabase("electra.db")
+
+        val ruta = contexto.getDatabasePath("electra.db").apply { parentFile?.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(ruta, null).use { v2 ->
+            v2.execSQL(
+                "CREATE TABLE pruebas (id INTEGER PRIMARY KEY AUTOINCREMENT, equipo TEXT NOT NULL, " +
+                        "tipo_prueba TEXT NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, " +
+                        "medicion TEXT NOT NULL, unidad TEXT NOT NULL, resultado TEXT NOT NULL, " +
+                        "observaciones TEXT NOT NULL)"
+            )
+            v2.execSQL(
+                "CREATE TABLE protocolos (id INTEGER PRIMARY KEY AUTOINCREMENT, numero TEXT UNIQUE NOT NULL, " +
+                        "equipo TEXT NOT NULL, fecha TEXT NOT NULL, estado TEXT NOT NULL, " +
+                        "responsable TEXT NOT NULL, observaciones TEXT)"
+            )
+            v2.execSQL(
+                "INSERT INTO protocolos (numero, equipo, fecha, estado, responsable) " +
+                        "VALUES ('#000125', 'TRA-001', '02/10/2026', 'Formalizado', 'Juan Pérez')"
+            )
+            v2.execSQL(
+                "INSERT INTO pruebas (equipo, tipo_prueba, fecha, hora, medicion, unidad, resultado, observaciones) " +
+                        "VALUES ('TR-001', 'Rigidez', '01/01/2026', '08:00', '50', 'kV', 'Aprobado', '')"
+            )
+            v2.version = 2
+        }
+
+        db = PruebaDbHelper(contexto)
+
+        assertEquals("TR-001", db.buscarProtocoloPorNumero("000125")?.equipo)
+        val antigua = db.listarPruebas().single()
+        assertNull(antigua.fotoUri)
+        assertNull(antigua.latitud)
+
+        val id = db.insertarPrueba(prueba().copy(fotoUri = "content://foto/1", latitud = -33.4, longitud = -70.6))
+        val nueva = db.buscarPruebaPorId(id)
+        assertEquals("content://foto/1", nueva?.fotoUri)
+        assertEquals(-33.4, nueva?.latitud!!, 0.0001)
+        assertEquals(-70.6, nueva.longitud!!, 0.0001)
     }
 }

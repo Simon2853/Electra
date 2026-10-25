@@ -15,9 +15,7 @@ import kotlinx.coroutines.launch
 data class HistorialEquipoUiState(
     val equipoSeleccionado: String,
     val equipos: List<String> = CatalogoEquipos.CODIGOS_POR_DEFECTO,
-    /** Solo las últimas [LIMITE_RECIENTES_POR_EQUIPO], de la más reciente a la más antigua. */
     val pruebas: List<Prueba> = emptyList(),
-    /** Total de pruebas guardadas del equipo, incluidas las que no se muestran. */
     val totalPruebas: Int = 0
 )
 
@@ -36,7 +34,6 @@ class HistorialEquipoViewModel(
         cargar()
     }
 
-    /** La pantalla lo llama en cada ON_RESUME para reflejar pruebas recién guardadas. */
     fun cargar() {
         carga?.cancel()
         val equipo = _uiState.value.equipoSeleccionado.trim()

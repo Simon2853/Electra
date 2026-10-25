@@ -5,7 +5,7 @@ data class Protocolo(
     val numero: String,
     val equipo: String,
     val fecha: String,
-    val estado: String, // "Registrado en terreno" o "Formalizado"
+    val estado: String,
     val responsable: String = "Técnico Electra",
     val observaciones: String = ""
 )

@@ -14,6 +14,7 @@ object Routes {
     const val REGISTRAR_PRUEBA_PARAM = "registrar_prueba/{codigo}"
 
     const val CONFIRMACION_PRUEBA = "confirmacion_prueba"
+    const val CONFIRMACION_PRUEBA_PARAM = "confirmacion_prueba/{idPrueba}"
 
     const val PROTOCOLOS = "protocolos"
     const val PROTOCOLO = "protocolo"
@@ -28,11 +29,20 @@ object Routes {
 
     const val PERFIL = "perfil"
 
+    fun detalleEquipo(codigo: String): String = "$DETALLE_EQUIPO/$codigo"
+
+    fun registrarPrueba(codigo: String): String = "$REGISTRAR_PRUEBA/$codigo"
+
+    fun historialEquipo(codigo: String): String = "$HISTORIAL_EQUIPO/$codigo"
+
+    fun confirmacionPrueba(idPrueba: Long): String = "$CONFIRMACION_PRUEBA/$idPrueba"
+
     fun detallePrueba(idPrueba: Long): String {
         return "detalle_prueba/$idPrueba"
     }
 
+
     fun protocolo(numero: String): String {
-        return "protocolo/$numero"
+        return "protocolo/${numero.removePrefix("#")}"
     }
 }

@@ -37,18 +37,9 @@ android {
 
 dependencies {
 
-    // ==========================================
-    // ANDROIDX CORE
-    // ==========================================
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
-
-
-    // ==========================================
-    // JETPACK COMPOSE
-    // ==========================================
 
     implementation(platform(libs.androidx.compose.bom))
 
@@ -59,76 +50,20 @@ dependencies {
 
     implementation("androidx.compose.material:material-icons-extended")
 
-
-    // ==========================================
-    // NAVEGACIÓN
-    // ==========================================
-
     implementation("androidx.navigation:navigation-compose:2.9.5")
-
-
-    // ==========================================
-    // MVVM / LIFECYCLE
-    // ==========================================
 
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-
-    // ==========================================
-    // ROOM / SQLITE
-    // ==========================================
-
-    implementation("androidx.room:room-runtime:2.6.1")
-    implementation("androidx.room:room-ktx:2.6.1")
-
-
-
-    // ==========================================
-    // RETROFIT / API REST
-    // ==========================================
-
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
 
-
-    // ==========================================
-    // DATASTORE
-    // ==========================================
-
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
-
-
-    // ==========================================
-    // IMÁGENES
-    // ==========================================
-
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-
-    // ==========================================
-    // RESPONSIVE / WINDOW SIZE
-    // ==========================================
-
-    implementation(
-        "androidx.compose.material3:material3-window-size-class:1.3.0"
-    )
-
-
-    // ==========================================
-    // UNIT TESTS
-    // ==========================================
-
     testImplementation("junit:junit:4.13.2")
-    testImplementation("io.mockk:mockk:1.13.10")
     testImplementation(
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0"
     )
-
-
-    // ==========================================
-    // ANDROID TESTS
-    // ==========================================
 
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -138,11 +73,6 @@ dependencies {
     androidTestImplementation(
         "androidx.compose.ui:ui-test-junit4"
     )
-
-
-    // ==========================================
-    // DEBUG / COMPOSE
-    // ==========================================
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 

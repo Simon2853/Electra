@@ -21,10 +21,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/**
- * Pruebas de punta a punta con el contenedor real (SQLite + SharedPreferences),
- * aislado con prefijo "test_" para no tocar los datos del dispositivo.
- */
 @RunWith(AndroidJUnit4::class)
 class FlujoPrincipalTest {
 
@@ -54,13 +50,12 @@ class FlujoPrincipalTest {
         compose.onNodeWithText("Confirmar contraseña").performScrollTo().performTextInput("Segura#2026")
         compose.onNode(hasText("Crear cuenta") and hasClickAction()).performScrollTo().performClick()
 
-        // Vuelve al login e inicia sesión
         compose.esperarTexto("¿No tienes cuenta? Regístrate")
         compose.onNodeWithText("Usuario").performTextInput("anatest")
         compose.onNodeWithText("Contraseña").performTextInput("Segura#2026")
         compose.onNode(hasText("Iniciar sesión") and hasClickAction()).performClick()
 
-        compose.esperarTexto("Hola, Técnico")
+        compose.esperarTexto("Hola, Ana")
     }
 
     @Test
@@ -78,11 +73,13 @@ class FlujoPrincipalTest {
         registrarseEIngresar()
 
         compose.onNodeWithText("Registrar nueva prueba").performClick()
-        compose.onNodeWithText("Ej: 125.5").performScrollTo().performTextInput("1500")
+        compose.onNodeWithText("Medición").performScrollTo().performTextInput("1500")
         compose.onNodeWithText("Guardar prueba").performScrollTo().performClick()
 
-        // Al guardar vuelve al Home; la tarjeta "Pruebas" abre el historial de TR-001
-        compose.esperarTexto("Hola, Técnico")
+        compose.esperarTexto("Prueba registrada")
+        compose.esperarTexto("Inicio")
+        compose.onNodeWithText("Inicio").performClick()
+        compose.esperarTexto("Hola, Ana")
         compose.onAllNodesWithText("Pruebas")[0].performClick()
 
         compose.esperarTexto("Cantidad de pruebas: 1")
@@ -97,12 +94,11 @@ class FlujoPrincipalTest {
         compose.esperarTexto("4 protocolo(s) encontrado(s)")
 
         compose.onNodeWithContentDescription("Nuevo Protocolo").performClick()
-        // Espera a que el ViewModel sugiera el número: 4 protocolos semilla + 126
-        compose.esperarTexto("#000130")
+        compose.esperarTexto("#000126")
         compose.onNodeWithText("Responsable / Inspector").performTextInput("Ana Test")
-        compose.onNodeWithText("Guardar Protocolo").performScrollTo().performClick()
+        compose.onNodeWithText("Guardar protocolo").performScrollTo().performClick()
 
         compose.esperarTexto("5 protocolo(s) encontrado(s)")
-        compose.onNodeWithText("#000130").assertExists()
+        compose.onNodeWithText("#000126").assertExists()
     }
 }

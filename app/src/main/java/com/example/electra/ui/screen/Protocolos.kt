@@ -15,7 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FilterList
@@ -30,7 +30,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -43,11 +43,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.electra.ui.theme.AzulOscuro
+import com.example.electra.ui.theme.AzulPrincipal
+import com.example.electra.ui.theme.Fondo
+import com.example.electra.ui.theme.NaranjaPendiente
+import com.example.electra.ui.theme.RojoError
+import com.example.electra.ui.theme.TextoSecundario
+import com.example.electra.ui.theme.VerdeExito
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -56,11 +64,11 @@ import com.example.electra.model.Protocolo
 import com.example.electra.ui.viewmodel.LIMITE_RECIENTES_POR_EQUIPO
 import com.example.electra.ui.viewmodel.ProtocolosViewModel
 
-private val BackgroundColor = Color(0xFFF4F7FA)
-private val DarkBlue = Color(0xFF173B57)
-private val MainBlue = Color(0xFF1769AA)
-private val SuccessGreen = Color(0xFF2E7D32)
-private val Orange = Color(0xFFE68A00)
+private val BackgroundColor = Fondo
+private val DarkBlue = AzulOscuro
+private val MainBlue = AzulPrincipal
+private val SuccessGreen = VerdeExito
+private val Orange = NaranjaPendiente
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +86,7 @@ fun Protocolos(
     var fechaExpanded by remember { mutableStateOf(false) }
     var estadoExpanded by remember { mutableStateOf(false) }
 
-    // Recarga al entrar y al volver desde Crear protocolo / Detalle
+
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
@@ -114,7 +122,7 @@ fun Protocolos(
                 .padding(innerPadding)
                 .background(BackgroundColor)
         ) {
-            // Barra superior
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -124,7 +132,7 @@ fun Protocolos(
             ) {
                 IconButton(onClick = onBackClick) {
                     Icon(
-                        imageVector = Icons.Default.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
                         tint = DarkBlue
                     )
@@ -143,7 +151,7 @@ fun Protocolos(
                     Text(
                         text = "Lista de protocolos",
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = TextoSecundario
                     )
                 }
             }
@@ -154,7 +162,8 @@ fun Protocolos(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Encabezado
+
+
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -174,7 +183,6 @@ fun Protocolos(
                     }
                 }
 
-                // Filtros
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -201,7 +209,6 @@ fun Protocolos(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Filtro por equipo
                             OutlinedTextField(
                                 value = busquedaEquipo,
                                 onValueChange = { busquedaEquipo = it },
@@ -224,7 +231,6 @@ fun Protocolos(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Filtro por fecha
                             ExposedDropdownMenuBox(
                                 expanded = fechaExpanded,
                                 onExpandedChange = { fechaExpanded = !fechaExpanded }
@@ -235,7 +241,7 @@ fun Protocolos(
                                     readOnly = true,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                                     label = { Text("Fecha") },
                                     trailingIcon = {
                                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = fechaExpanded)
@@ -265,7 +271,6 @@ fun Protocolos(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Filtro por estado
                             ExposedDropdownMenuBox(
                                 expanded = estadoExpanded,
                                 onExpandedChange = { estadoExpanded = !estadoExpanded }
@@ -276,7 +281,7 @@ fun Protocolos(
                                     readOnly = true,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                                        .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                                     label = { Text("Estado") },
                                     trailingIcon = {
                                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = estadoExpanded)
@@ -307,26 +312,25 @@ fun Protocolos(
                     }
                 }
 
-                // Cantidad de resultados
                 item {
                     Column {
                         Text(
                             text = "${protocolosFiltrados.size} protocolo(s) encontrado(s)",
                             fontSize = 13.sp,
-                            color = Color.Gray
+                            color = TextoSecundario
                         )
 
                         Text(
                             text = "Se muestran los últimos $LIMITE_RECIENTES_POR_EQUIPO de cada equipo",
                             fontSize = 12.sp,
-                            color = Color.Gray
+                            color = TextoSecundario
                         )
                     }
                 }
 
-                // Lista de protocolos consultados desde SQLite
-                items(protocolosFiltrados) { protocolo ->
+                items(protocolosFiltrados, key = { it.id }) { protocolo ->
                     ProtocoloListItem(
+                        modifier = Modifier.animateItem(),
                         protocolo = protocolo,
                         onClick = {
                             val numeroLimpio = protocolo.numero.replace("#", "")
@@ -335,7 +339,6 @@ fun Protocolos(
                     )
                 }
 
-                // Sin resultados
                 if (protocolosFiltrados.isEmpty()) {
                     item {
                         Card(
@@ -352,7 +355,7 @@ fun Protocolos(
                                 Icon(
                                     imageVector = Icons.Default.Description,
                                     contentDescription = null,
-                                    tint = Color.Gray
+                                    tint = TextoSecundario
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -366,7 +369,7 @@ fun Protocolos(
                                 Text(
                                     text = "Prueba modificando los filtros.",
                                     fontSize = 13.sp,
-                                    color = Color.Gray
+                                    color = TextoSecundario
                                 )
                             }
                         }
@@ -381,7 +384,7 @@ fun Protocolos(
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = TextoSecundario
                     )
                 }
             }
@@ -392,10 +395,11 @@ fun Protocolos(
 @Composable
 private fun ProtocoloListItem(
     protocolo: Protocolo,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         onClick = onClick
@@ -440,7 +444,7 @@ private fun ProtocoloListItem(
                 Text(
                     text = protocolo.fecha,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = TextoSecundario
                 )
 
                 EstadoProtocolo(protocolo.estado)
@@ -487,11 +491,11 @@ private fun EstadoProtocolo(
 fun ProtocolosPreview() {
     MaterialTheme {
         Protocolos(
-            viewModel = ProtocolosViewModel(
+            viewModel = viewModel { ProtocolosViewModel(
                 ProtocolosRepositoryEnMemoria(
                     listOf(Protocolo(id = 1, numero = "#000125", equipo = "TR-001", fecha = "02/10/2026", estado = "Formalizado"))
                 )
-            )
+            ) }
         )
     }
 }

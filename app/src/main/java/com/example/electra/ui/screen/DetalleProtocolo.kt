@@ -1,23 +1,55 @@
 package com.example.electra.ui.screen
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.Comment
+import androidx.compose.material.icons.automirrored.outlined.Comment
+import androidx.compose.material.icons.outlined.HourglassTop
+import androidx.compose.material.icons.outlined.LocationCity
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.outlined.Science
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Verified
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -25,25 +57,35 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.electra.device.Compartir
+import com.example.electra.device.Vibracion
+import com.example.electra.model.CatalogoEquipos
+import com.example.electra.model.OpcionesPrueba
+import com.example.electra.ui.components.BarraSuperior
+import com.example.electra.ui.components.BotonCarga
+import com.example.electra.ui.components.CampoValidado
+import com.example.electra.ui.theme.AzulOscuro
+import com.example.electra.ui.theme.AzulPrincipal
+import com.example.electra.ui.theme.Fondo
+import com.example.electra.ui.theme.NaranjaPendiente
+import com.example.electra.ui.theme.NaranjaSuave
+import com.example.electra.ui.theme.RojoError
+import com.example.electra.ui.theme.TextoSecundario
+import com.example.electra.ui.theme.VerdeExito
+import com.example.electra.ui.theme.VerdeSuave
 import com.example.electra.ui.viewmodel.DetalleProtocoloViewModel
 import com.example.electra.ui.viewmodel.MensajeProtocolo
-
-private val BackgroundColor = Color(0xFFF4F7FA)
-private val DarkBlue = Color(0xFF173B57)
-private val MainBlue = Color(0xFF1769AA)
-private val SuccessGreen = Color(0xFF2E7D32)
+import com.example.electra.validation.Validaciones
 
 @Composable
 fun DetalleProtocolo(
     viewModel: DetalleProtocoloViewModel,
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onPruebaClick: (Long) -> Unit = {}
 ) {
     val context = LocalContext.current
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val protocolo = estado.protocolo
-
-    var mostrarDialogoEditar by remember { mutableStateOf(false) }
-    var textoEditarObservacion by remember { mutableStateOf("") }
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
@@ -53,6 +95,10 @@ fun DetalleProtocolo(
         val texto = when (estado.mensaje) {
             MensajeProtocolo.OBSERVACION_ACTUALIZADA -> "Observación actualizada"
             MensajeProtocolo.ERROR_ACTUALIZAR -> "Error al actualizar"
+            MensajeProtocolo.FORMALIZADO -> {
+                Vibracion.exito(context)
+                "Protocolo formalizado"
+            }
             null -> return@LaunchedEffect
         }
         Toast.makeText(context, texto, Toast.LENGTH_SHORT).show()
@@ -62,198 +108,218 @@ fun DetalleProtocolo(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(BackgroundColor)
+            .background(Fondo)
     ) {
-        // Barra Superior
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(horizontal = 8.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = DarkBlue)
+        BarraSuperior(
+            titulo = "Detalle del protocolo",
+            subtitulo = protocolo?.numero ?: "Protocolo",
+            onVolver = onBackClick,
+            acciones = {
+                if (protocolo != null) {
+                    IconButton(onClick = {
+                        viewModel.textoRespaldo()?.let {
+                            Compartir.texto(context, "Protocolo ${protocolo.numero}", it)
+                        }
+                    }) {
+                        Icon(Icons.Outlined.Share, contentDescription = "Compartir con el cliente", tint = AzulPrincipal)
+                    }
+                }
             }
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text("ELECTRA", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = DarkBlue)
-                Text("Detalle del protocolo", fontSize = 13.sp, color = Color.Gray)
-            }
-        }
+        )
 
         if (protocolo == null) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                if (estado.cargando) {
+                    CircularProgressIndicator()
+                } else {
+                    Text(text = "No se encontró el protocolo.", color = TextoSecundario)
+                }
+            }
+            return@Column
+        }
+
+        val formalizado = estado.formalizado
+        val colorEstado by animateColorAsState(if (formalizado) VerdeExito else NaranjaPendiente, label = "colorEstado")
+        val fondoEstado by animateColorAsState(if (formalizado) VerdeSuave else NaranjaSuave, label = "fondoEstado")
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            Tarjeta {
+                Text(text = protocolo.numero, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                Text(text = "Equipo asociado: ${protocolo.equipo}", fontSize = 15.sp, color = AzulPrincipal)
+                Row(
+                    modifier = Modifier
+                        .background(fondoEstado, RoundedCornerShape(50))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AnimatedContent(
+                        targetState = formalizado,
+                        transitionSpec = { scaleIn() togetherWith fadeOut() },
+                        label = "iconoEstado"
+                    ) { listo ->
+                        Icon(
+                            imageVector = if (listo) Icons.Outlined.Verified else Icons.Outlined.HourglassTop,
+                            contentDescription = null,
+                            tint = colorEstado,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(6.dp))
+                    Text(text = protocolo.estado, color = colorEstado, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+
+
+            Tarjeta {
+                Text("Información de certificación", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                FilaInfo(Icons.Outlined.CalendarToday, "Fecha de registro", protocolo.fecha)
+                FilaInfo(Icons.Outlined.Person, "Responsable", protocolo.responsable)
+                CatalogoEquipos.buscar(protocolo.equipo)?.let {
+                    FilaInfo(Icons.Outlined.LocationCity, "Instalación", "${it.instalacion} · ${it.cliente}")
+                }
+            }
+
+
+            Tarjeta {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.AutoMirrored.Outlined.Comment, contentDescription = null, tint = AzulPrincipal, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Observaciones", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    }
+                    IconButton(onClick = viewModel::abrirEdicion) {
+                        Icon(Icons.Filled.Edit, contentDescription = "Editar observación", tint = AzulPrincipal)
+                    }
+                }
                 Text(
-                    text = if (estado.cargando) "Cargando información del protocolo..." else "No se encontró el protocolo.",
-                    color = Color.Gray
+                    text = protocolo.observaciones.ifBlank { "Sin observaciones registradas." },
+                    fontSize = 14.sp,
+                    color = if (protocolo.observaciones.isNotBlank()) AzulOscuro else TextoSecundario
                 )
             }
-        } else {
-            val p = protocolo
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+
+
+            Tarjeta {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.Science, contentDescription = null, tint = AzulPrincipal, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Pruebas del equipo", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                }
+                if (estado.pruebas.isEmpty()) {
+                    Text("Aún no hay pruebas registradas para este equipo.", fontSize = 13.sp, color = TextoSecundario)
+                }
+                estado.pruebas.forEach { prueba ->
+                    val aprobada = prueba.resultado == OpcionesPrueba.APROBADO
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(prueba.tipoPrueba, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro)
+                            Text(
+                                "${prueba.fecha} ${prueba.hora} · ${prueba.medicion} ${prueba.unidad}",
+                                fontSize = 12.sp,
+                                color = TextoSecundario
+                            )
+                        }
+                        TextButton(onClick = { onPruebaClick(prueba.id) }) {
+                            Text(prueba.resultado, color = if (aprobada) VerdeExito else RojoError)
+                        }
+                    }
+                }
+            }
+
+            AnimatedVisibility(
+                visible = !formalizado,
+                exit = shrinkVertically() + fadeOut()
             ) {
-                // Tarjeta 1: Encabezado y Estado
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Text(
-                            text = if (p.numero.startsWith("#")) p.numero else "#${p.numero}",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = DarkBlue
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Equipo asociado: ${p.equipo}", fontSize = 15.sp, color = MainBlue)
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "Estado actual: ${p.estado}",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (p.estado.equals("Formalizado", ignoreCase = true)) SuccessGreen else Color(0xFFE68A00)
-                        )
-                    }
-                }
+                BotonCarga(
+                    texto = "Formalizar protocolo",
+                    icono = Icons.Filled.CheckCircle,
+                    cargando = false,
+                    onClick = viewModel::formalizar,
+                    color = VerdeExito
+                )
+            }
 
-                // Tarjeta 2: Información General
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text("Información de Certificación", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = DarkBlue)
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.CalendarToday, contentDescription = null, tint = MainBlue)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text("Fecha de registro: ${p.fecha}", fontSize = 14.sp, color = DarkBlue)
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.Person, contentDescription = null, tint = MainBlue)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text("Responsable: ${p.responsable}", fontSize = 14.sp, color = DarkBlue)
-                        }
-                    }
-                }
-
-                // Tarjeta 3: Observaciones y Notas
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Comment,
-                                    contentDescription = null,
-                                    tint = MainBlue,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Observaciones",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = DarkBlue
-                                )
-                            }
-
-                            IconButton(
-                                onClick = {
-                                    textoEditarObservacion = p.observaciones
-                                    mostrarDialogoEditar = true
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = "Editar Observación",
-                                    tint = MainBlue
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Text(
-                            text = if (p.observaciones.isNotBlank()) p.observaciones else "Sin observaciones registradas.",
-                            fontSize = 14.sp,
-                            color = if (p.observaciones.isNotBlank()) DarkBlue else Color.Gray
-                        )
-                    }
-                }
-
-                // Botón de Acción
-                if (!p.estado.equals("Formalizado", ignoreCase = true)) {
-                    Button(
-                        onClick = viewModel::formalizar,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
-                    ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Formalizar Protocolo")
-                    }
-                }
+            AnimatedVisibility(visible = formalizado, enter = fadeIn()) {
+                Text(
+                    text = "Protocolo formalizado. Puedes compartirlo con el cliente desde el ícono superior.",
+                    fontSize = 13.sp,
+                    color = TextoSecundario
+                )
             }
         }
     }
 
-    // Diálogo modal para editar la observación en tiempo real
-    if (mostrarDialogoEditar) {
+    if (estado.editandoObservacion) {
         AlertDialog(
-            onDismissRequest = { mostrarDialogoEditar = false },
-            title = { Text("Editar Observación", fontWeight = FontWeight.Bold, color = DarkBlue) },
+            onDismissRequest = viewModel::cancelarEdicion,
+            title = { Text("Editar observación", fontWeight = FontWeight.Bold, color = AzulOscuro) },
             text = {
-                OutlinedTextField(
-                    value = textoEditarObservacion,
-                    onValueChange = { textoEditarObservacion = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Observaciones / Notas") },
+                CampoValidado(
+                    valor = estado.textoObservacion,
+                    onCambio = viewModel::onObservacionChange,
+                    etiqueta = "Observaciones / Notas",
+                    icono = Icons.AutoMirrored.Outlined.Comment,
+                    error = estado.errorObservacion,
+                    singleLine = false,
                     minLines = 3,
-                    maxLines = 5,
-                    shape = RoundedCornerShape(12.dp)
+                    maxCaracteres = Validaciones.MAX_OBSERVACIONES
                 )
             },
             confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.actualizarObservaciones(textoEditarObservacion)
-                        mostrarDialogoEditar = false
-                    }
-                ) {
-                    Text("Guardar", color = MainBlue, fontWeight = FontWeight.Bold)
+                TextButton(onClick = viewModel::guardarObservacion, enabled = estado.errorObservacion == null) {
+                    Text("Guardar", color = AzulPrincipal, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { mostrarDialogoEditar = false }) {
-                    Text("Cancelar", color = Color.Gray)
+                TextButton(onClick = viewModel::cancelarEdicion) {
+                    Text("Cancelar", color = TextoSecundario)
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun Tarjeta(contenido: @Composable () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(18.dp)
+                .animateContentSize(),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            contenido()
+        }
+    }
+}
+
+@Composable
+private fun FilaInfo(icono: ImageVector, etiqueta: String, valor: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(icono, contentDescription = null, tint = AzulPrincipal, modifier = Modifier.size(22.dp))
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(etiqueta, fontSize = 12.sp, color = TextoSecundario)
+            Text(valor, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = AzulOscuro)
+        }
     }
 }

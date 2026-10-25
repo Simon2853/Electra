@@ -14,9 +14,8 @@ class PruebaDbHelper(context: Context) :
 
     companion object {
         private const val NOMBRE_BD = "electra.db"
-        private const val VERSION_BD = 2
+        private const val VERSION_BD = 3
 
-        // TABLA PRUEBAS
         private const val TABLA_PRUEBAS = "pruebas"
 
         private const val ID = "id"
@@ -28,6 +27,9 @@ class PruebaDbHelper(context: Context) :
         private const val UNIDAD = "unidad"
         private const val RESULTADO = "resultado"
         private const val OBSERVACIONES = "observaciones"
+        private const val FOTO_URI = "foto_uri"
+        private const val LATITUD = "latitud"
+        private const val LONGITUD = "longitud"
 
         private const val SQL_CREAR_TABLA_PRUEBAS =
             "CREATE TABLE $TABLA_PRUEBAS (" +
@@ -39,9 +41,11 @@ class PruebaDbHelper(context: Context) :
                     "$MEDICION TEXT NOT NULL, " +
                     "$UNIDAD TEXT NOT NULL, " +
                     "$RESULTADO TEXT NOT NULL, " +
-                    "$OBSERVACIONES TEXT NOT NULL)"
+                    "$OBSERVACIONES TEXT NOT NULL, " +
+                    "$FOTO_URI TEXT, " +
+                    "$LATITUD REAL, " +
+                    "$LONGITUD REAL)"
 
-        // TABLA PROTOCOLOS
         private const val TABLA_PROTOCOLOS = "protocolos"
 
         private const val PROTOCOLO_ID = "id"
@@ -51,6 +55,9 @@ class PruebaDbHelper(context: Context) :
         private const val PROTOCOLO_ESTADO = "estado"
         private const val PROTOCOLO_RESPONSABLE = "responsable"
         private const val PROTOCOLO_OBSERVACIONES = "observaciones"
+
+        private val CODIGOS_ANTIGUOS =
+            mapOf("TRA-001" to "TR-001", "REL-025" to "RL-004", "TRA-002" to "TR-002")
 
         private const val SQL_CREAR_TABLA_PROTOCOLOS =
             "CREATE TABLE $TABLA_PROTOCOLOS (" +
@@ -78,6 +85,18 @@ class PruebaDbHelper(context: Context) :
             db.execSQL(SQL_CREAR_TABLA_PROTOCOLOS)
             insertarDatosInicialesProtocolos(db)
         }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE $TABLA_PRUEBAS ADD COLUMN $FOTO_URI TEXT")
+            db.execSQL("ALTER TABLE $TABLA_PRUEBAS ADD COLUMN $LATITUD REAL")
+            db.execSQL("ALTER TABLE $TABLA_PRUEBAS ADD COLUMN $LONGITUD REAL")
+
+            CODIGOS_ANTIGUOS.forEach { (antiguo, nuevo) ->
+                db.execSQL(
+                    "UPDATE $TABLA_PROTOCOLOS SET $PROTOCOLO_EQUIPO = ? WHERE $PROTOCOLO_EQUIPO = ?",
+                    arrayOf(nuevo, antiguo)
+                )
+            }
+        }
     }
 
     private fun insertarDatosInicialesProtocolos(db: SQLiteDatabase) {
@@ -85,14 +104,12 @@ class PruebaDbHelper(context: Context) :
             "INSERT OR IGNORE INTO $TABLA_PROTOCOLOS " +
                     "($PROTOCOLO_NUMERO, $PROTOCOLO_EQUIPO, $PROTOCOLO_FECHA, $PROTOCOLO_ESTADO, $PROTOCOLO_RESPONSABLE, $PROTOCOLO_OBSERVACIONES) " +
                     "VALUES " +
-                    "('#000125', 'TRA-001', '02/10/2026', 'Formalizado', 'Juan Pérez', 'Inspección aprobada sin observaciones.'), " +
-                    "('#000124', 'REL-025', '01/10/2026', 'Registrado en terreno', 'Carlos Soto', 'Pendiente firma de validación.'), " +
-                    "('#000123', 'TRA-002', '28/09/2026', 'Formalizado', 'Juan Pérez', 'Ensayo funcional completado.'), " +
+                    "('#000125', 'TR-001', '02/10/2026', 'Formalizado', 'Juan Pérez', 'Inspección aprobada sin observaciones.'), " +
+                    "('#000124', 'RL-004', '01/10/2026', 'Registrado en terreno', 'Carlos Soto', 'Pendiente firma de validación.'), " +
+                    "('#000123', 'TR-002', '28/09/2026', 'Formalizado', 'Juan Pérez', 'Ensayo funcional completado.'), " +
                     "('#000122', 'CE-008', '25/09/2026', 'Registrado en terreno', 'Diego Araya', 'Mediciones registradas correctamente.')"
         )
     }
-
-    // --- MÉTODOS DE PRUEBAS ---
 
     fun insertarPrueba(prueba: Prueba): Long {
         return try {
@@ -165,8 +182,6 @@ class PruebaDbHelper(context: Context) :
         ) > 0
     }
 
-    // --- MÉTODOS DE PROTOCOLOS ---
-
     fun insertarProtocolo(protocolo: Protocolo): Long {
         return try {
             val numLimpio = protocolo.numero.trim()
@@ -232,8 +247,6 @@ class PruebaDbHelper(context: Context) :
         ) > 0
     }
 
-    // --- FUNCIONES AUXILIARES DE LECTURA ---
-
     private fun valoresDe(prueba: Prueba): ContentValues {
         return ContentValues().apply {
             put(EQUIPO, prueba.equipo)
@@ -244,6 +257,9 @@ class PruebaDbHelper(context: Context) :
             put(UNIDAD, prueba.unidad)
             put(RESULTADO, prueba.resultado)
             put(OBSERVACIONES, prueba.observaciones)
+            put(FOTO_URI, prueba.fotoUri)
+            put(LATITUD, prueba.latitud)
+            put(LONGITUD, prueba.longitud)
         }
     }
 
@@ -270,8 +286,21 @@ class PruebaDbHelper(context: Context) :
             medicion = cursor.getString(cursor.getColumnIndexOrThrow(MEDICION)),
             unidad = cursor.getString(cursor.getColumnIndexOrThrow(UNIDAD)),
             resultado = cursor.getString(cursor.getColumnIndexOrThrow(RESULTADO)),
-            observaciones = cursor.getString(cursor.getColumnIndexOrThrow(OBSERVACIONES))
+            observaciones = cursor.getString(cursor.getColumnIndexOrThrow(OBSERVACIONES)),
+            fotoUri = cursor.textoONulo(FOTO_URI),
+            latitud = cursor.decimalONulo(LATITUD),
+            longitud = cursor.decimalONulo(LONGITUD)
         )
+    }
+
+    private fun Cursor.textoONulo(columna: String): String? {
+        val indice = getColumnIndex(columna)
+        return if (indice == -1 || isNull(indice)) null else getString(indice)
+    }
+
+    private fun Cursor.decimalONulo(columna: String): Double? {
+        val indice = getColumnIndex(columna)
+        return if (indice == -1 || isNull(indice)) null else getDouble(indice)
     }
 
     private fun leerProtocolo(cursor: Cursor): Protocolo {

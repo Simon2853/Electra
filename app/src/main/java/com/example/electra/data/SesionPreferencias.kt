@@ -3,7 +3,14 @@ package com.example.electra.data
 import android.content.Context
 import androidx.core.content.edit
 
-class SesionPreferencias(context: Context) {
+interface SesionRepository {
+
+    fun usuarioActual(): String?
+    fun iniciar(usuario: String)
+    fun cerrar()
+}
+
+class SesionPreferencias(context: Context) : SesionRepository {
 
     private val prefs = context.getSharedPreferences(
         "electra_sesion",
@@ -11,30 +18,16 @@ class SesionPreferencias(context: Context) {
     )
 
     companion object {
-        private const val CLAVE_ID_TECNICO = "id_tecnico"
-        private const val SIN_SESION = -1L
+        private const val CLAVE_USUARIO = "usuario"
     }
 
-    fun guardar(idTecnico: Long) {
-        prefs.edit {
-            putLong(CLAVE_ID_TECNICO, idTecnico)
-        }
+    override fun usuarioActual(): String? = prefs.getString(CLAVE_USUARIO, null)
+
+    override fun iniciar(usuario: String) {
+        prefs.edit { putString(CLAVE_USUARIO, usuario) }
     }
 
-    fun leer(): Long {
-        return prefs.getLong(
-            CLAVE_ID_TECNICO,
-            SIN_SESION
-        )
-    }
-
-    fun haySesion(): Boolean {
-        return leer() != SIN_SESION
-    }
-
-    fun borrar() {
-        prefs.edit {
-            remove(CLAVE_ID_TECNICO)
-        }
+    override fun cerrar() {
+        prefs.edit { remove(CLAVE_USUARIO) }
     }
 }

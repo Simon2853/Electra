@@ -6,10 +6,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 interface PruebasRepository {
-    /** Devuelve el id asignado, o null si no se pudo guardar. */
+
     suspend fun insertar(prueba: Prueba): Long?
     suspend fun buscarPorId(id: Long): Prueba?
     suspend fun listarPorEquipo(codigoEquipo: String): List<Prueba>
+
+    suspend fun listarTodas(): List<Prueba>
     suspend fun equiposConRegistros(): List<String>
 }
 
@@ -28,6 +30,10 @@ class SqlitePruebasRepository(
 
     override suspend fun listarPorEquipo(codigoEquipo: String): List<Prueba> = withContext(io) {
         db.listarPruebasPorEquipo(codigoEquipo)
+    }
+
+    override suspend fun listarTodas(): List<Prueba> = withContext(io) {
+        db.listarPruebas()
     }
 
     override suspend fun equiposConRegistros(): List<String> = withContext(io) {

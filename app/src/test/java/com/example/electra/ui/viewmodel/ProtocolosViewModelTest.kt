@@ -2,6 +2,7 @@ package com.example.electra.ui.viewmodel
 
 import com.example.electra.data.ProtocolosRepositoryEnMemoria
 import com.example.electra.data.PruebasRepositoryEnMemoria
+import com.example.electra.model.CatalogoEquipos
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -22,8 +23,6 @@ class ProtocolosViewModelTest {
             protocolo(4, "#000125", "Formalizado")
         )
     )
-
-    // --- LISTA ---
 
     @Test
     fun lista_cargaLosProtocolosMasRecientesPrimero() {
@@ -51,11 +50,8 @@ class ProtocolosViewModelTest {
             listOf("#000009", "#000008", "#000007", "#000006", "#000005", "#000004", "#000003"),
             vm.protocolos.value.map { it.numero }
         )
-        // No se borra nada de la base
         assertEquals(9, repo.protocolos.size)
     }
-
-    // --- CREAR ---
 
     private fun crearVm(
         protocolos: ProtocolosRepositoryEnMemoria = repoConSemilla(),
@@ -63,13 +59,20 @@ class ProtocolosViewModelTest {
     ) = CrearProtocoloViewModel(protocolos, PruebasRepositoryEnMemoria(), codigoInicial, fecha = "23/10/2026")
 
     @Test
-    fun crear_sugiereNumeroYEquipo() {
+    fun crear_sugiereElSiguienteNumeroYEquipo() {
         val vm = crearVm()
 
-        assertEquals("#000130", vm.uiState.value.numero)
+        assertEquals("#000126", vm.uiState.value.numero)
         assertEquals("TR-001", vm.uiState.value.equipo)
         assertEquals("23/10/2026", vm.uiState.value.fecha)
-        assertEquals(4, vm.uiState.value.equipos.size)
+        assertEquals(CatalogoEquipos.CODIGOS, vm.uiState.value.equipos)
+    }
+
+    @Test
+    fun siguienteNumero_noChocaConNumerosExistentes() {
+        val lista = listOf(protocolo(1, "#000010"), protocolo(2, "#000200"))
+        assertEquals("#000201", siguienteNumero(lista))
+        assertEquals("#000001", siguienteNumero(emptyList()))
     }
 
     @Test
@@ -79,14 +82,27 @@ class ProtocolosViewModelTest {
     }
 
     @Test
-    fun crear_sinResponsableNoGuarda() {
+    fun crear_sinResponsableMarcaElCampoYNoGuarda() {
         val repo = repoConSemilla()
         val vm = crearVm(repo)
+        assertNull(vm.uiState.value.errorResponsable)
 
         vm.guardar()
 
         assertEquals(ResultadoProtocolo.CAMPOS_INCOMPLETOS, vm.uiState.value.resultado)
+        assertEquals("Ingresa el responsable de la inspección.", vm.uiState.value.errorResponsable)
         assertEquals(4, repo.protocolos.size)
+    }
+
+    @Test
+    fun crear_numeroConFormatoInvalido() {
+        val vm = crearVm()
+        vm.onNumeroChange("12A")
+        vm.onResponsableChange("Ana Test")
+
+        vm.guardar()
+
+        assertEquals("Usa 6 dígitos, por ejemplo #000130.", vm.uiState.value.errorNumero)
     }
 
     @Test
@@ -112,7 +128,7 @@ class ProtocolosViewModelTest {
     }
 
     @Test
-    fun crear_numeroDuplicadoSeInforma() {
+    fun crear_numeroDuplicadoSeMuestraEnElCampo() {
         val vm = crearVm()
 
         vm.onNumeroChange("000125")
@@ -120,26 +136,34 @@ class ProtocolosViewModelTest {
         vm.guardar()
 
         assertEquals(ResultadoProtocolo.DUPLICADO, vm.uiState.value.resultado)
+        assertEquals("Ya existe un protocolo con ese número.", vm.uiState.value.errorNumero)
         vm.resultadoMostrado()
         assertNull(vm.uiState.value.resultado)
+
+        vm.onNumeroChange("000300")
+        assertNull(vm.uiState.value.errorNumero)
     }
 
-    // --- DETALLE ---
+    private fun detalleVm(numero: String, pruebas: PruebasRepositoryEnMemoria = PruebasRepositoryEnMemoria()) =
+        DetalleProtocoloViewModel(repoConSemilla(), pruebas, numero)
 
     @Test
-    fun detalle_cargaElProtocolo() {
-        val vm = DetalleProtocoloViewModel(repoConSemilla(), "000124")
+    fun detalle_cargaElProtocoloYLasPruebasDelEquipo() {
+        val pruebas = PruebasRepositoryEnMemoria(listOf(prueba(1, "TR-001"), prueba(2, "RL-004")))
+        val vm = detalleVm("000124", pruebas)
         assertTrue(vm.uiState.value.cargando)
 
         vm.cargar()
 
         assertFalse(vm.uiState.value.cargando)
         assertEquals("#000124", vm.uiState.value.protocolo?.numero)
+        assertEquals(listOf(1L), vm.uiState.value.pruebas.map { it.id })
+        assertTrue(vm.textoRespaldo()!!.contains("PROTOCOLO #000124"))
     }
 
     @Test
     fun detalle_protocoloInexistente() {
-        val vm = DetalleProtocoloViewModel(repoConSemilla(), "999999")
+        val vm = detalleVm("999999")
         vm.cargar()
 
         assertFalse(vm.uiState.value.cargando)
@@ -148,22 +172,28 @@ class ProtocolosViewModelTest {
 
     @Test
     fun detalle_formalizarCambiaElEstado() {
-        val vm = DetalleProtocoloViewModel(repoConSemilla(), "000124")
+        val vm = detalleVm("000124")
         vm.cargar()
 
         vm.formalizar()
 
         assertEquals("Formalizado", vm.uiState.value.protocolo?.estado)
+        assertTrue(vm.uiState.value.formalizado)
+        assertEquals(MensajeProtocolo.FORMALIZADO, vm.uiState.value.mensaje)
     }
 
     @Test
-    fun detalle_actualizarObservaciones() {
-        val vm = DetalleProtocoloViewModel(repoConSemilla(), "000124")
+    fun detalle_editarObservacionDesdeElDialogo() {
+        val vm = detalleVm("000124")
         vm.cargar()
 
-        vm.actualizarObservaciones("  Revisar conexiones ")
+        vm.abrirEdicion()
+        assertTrue(vm.uiState.value.editandoObservacion)
+        vm.onObservacionChange("  Revisar conexiones ")
+        vm.guardarObservacion()
 
         assertEquals("Revisar conexiones", vm.uiState.value.protocolo?.observaciones)
+        assertFalse(vm.uiState.value.editandoObservacion)
         assertEquals(MensajeProtocolo.OBSERVACION_ACTUALIZADA, vm.uiState.value.mensaje)
 
         vm.mensajeMostrado()
@@ -171,8 +201,21 @@ class ProtocolosViewModelTest {
     }
 
     @Test
+    fun detalle_observacionDemasiadoLargaNoSeGuarda() {
+        val vm = detalleVm("000124")
+        vm.cargar()
+
+        vm.abrirEdicion()
+        vm.onObservacionChange("x".repeat(301))
+        vm.guardarObservacion()
+
+        assertEquals("Máximo 300 caracteres.", vm.uiState.value.errorObservacion)
+        assertTrue(vm.uiState.value.editandoObservacion)
+    }
+
+    @Test
     fun detalle_actualizarObservacionesDeProtocoloInexistenteInformaError() {
-        val vm = DetalleProtocoloViewModel(repoConSemilla(), "999999")
+        val vm = detalleVm("999999")
 
         vm.actualizarObservaciones("Nota")
 

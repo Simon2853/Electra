@@ -1,6 +1,7 @@
 package com.example.electra.data
 
 import android.content.Context
+import androidx.core.content.edit
 import java.security.MessageDigest
 
 object UsuariosLocal {
@@ -18,7 +19,6 @@ object UsuariosLocal {
             Context.MODE_PRIVATE
         )
 
-        // Mantiene exactamente las mayúsculas y minúsculas que ingresa el usuario
         val clave = usuario.trim()
 
         if (clave.isBlank()) return false
@@ -40,13 +40,16 @@ object UsuariosLocal {
             Context.MODE_PRIVATE
         )
 
-        // Busca coincidencia exacta en mayúsculas y minúsculas
         val clave = usuario.trim()
         val guardado = prefs.getString("hash_$clave", null)
             ?: return false
 
         return guardado == hash(contrasena)
     }
+
+    fun nombre(context: Context, usuario: String): String? =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .getString("nombre_${usuario.trim()}", null)
 
     private fun hash(texto: String): String {
         val bytes = MessageDigest.getInstance("SHA-256")

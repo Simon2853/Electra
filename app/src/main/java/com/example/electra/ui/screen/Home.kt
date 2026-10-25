@@ -1,5 +1,7 @@
 package com.example.electra.ui.screen
 
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,21 +17,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.outlined.AccountCircle
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.Assignment
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.outlined.AssignmentTurnedIn
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.ListAlt
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material.icons.outlined.PendingActions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,273 +42,178 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.electra.data.ProtocolosRepositoryEnMemoria
+import com.example.electra.data.PruebasRepositoryEnMemoria
+import com.example.electra.data.SesionEnMemoria
+import com.example.electra.data.UsuariosRepositoryEnMemoria
+import com.example.electra.model.CatalogoEquipos
+import com.example.electra.model.OpcionesPrueba
+import com.example.electra.model.Prueba
 import com.example.electra.navigation.Routes
-
-private val AzulElectra = Color(0xFF173B57)
-private val AzulBoton = Color(0xFF1769AA)
-private val FondoElectra = Color(0xFFF4F7FA)
+import com.example.electra.ui.components.BarraSuperior
+import com.example.electra.ui.components.BotonCarga
+import com.example.electra.ui.theme.AzulOscuro
+import com.example.electra.ui.theme.AzulPrincipal
+import com.example.electra.ui.theme.ElectraTheme
+import com.example.electra.ui.theme.Fondo
+import com.example.electra.ui.theme.NaranjaPendiente
+import com.example.electra.ui.theme.RojoError
+import com.example.electra.ui.theme.TextoSecundario
+import com.example.electra.ui.theme.VerdeExito
+import com.example.electra.ui.viewmodel.HomeViewModel
 
 @Composable
 fun Home(
+    viewModel: HomeViewModel,
     onNavigate: (String) -> Unit
 ) {
+    val estado by viewModel.uiState.collectAsStateWithLifecycle()
+    val equipoPorDefecto = CatalogoEquipos.CODIGOS.first()
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.cargar()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(FondoElectra)
+            .background(Fondo)
     ) {
-
-        // BARRA SUPERIOR
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                Text(
-                    text = "ELECTRA",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = AzulElectra
-                )
-
-                Text(
-                    text = "Gestión de pruebas eléctricas",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-            }
-
-            IconButton(
-                onClick = {
-                    onNavigate(Routes.REGISTRAR_PRUEBA_PARAM.replace("{codigo}", "TR-001"))
+        BarraSuperior(
+            titulo = "ELECTRA",
+            subtitulo = "Gestión de pruebas eléctricas",
+            acciones = {
+                IconButton(onClick = { onNavigate(Routes.PERFIL) }) {
+                    Icon(
+                        imageVector = Icons.Outlined.AccountCircle,
+                        contentDescription = "Perfil",
+                        tint = AzulOscuro,
+                        modifier = Modifier.size(30.dp)
+                    )
                 }
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Notifications,
-                    contentDescription = "Notificaciones",
-                    tint = AzulElectra
-                )
             }
-        }
+        )
 
-        // CONTENIDO PRINCIPAL
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 20.dp,
-                top = 20.dp,
-                end = 20.dp,
-                bottom = 28.dp
-            ),
+            contentPadding = PaddingValues(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
-            // SALUDO
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp, bottom = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        text = "Hola, Técnico",
+                        text = "Hola, ${estado.nombre}",
                         fontSize = 25.sp,
                         fontWeight = FontWeight.Bold,
-                        color = AzulElectra
+                        color = AzulOscuro
                     )
-
                     Text(
                         text = "Revisa el estado de tus pruebas y equipos.",
                         fontSize = 14.sp,
-                        color = Color.Gray
+                        color = TextoSecundario
                     )
                 }
             }
 
-            // BOTÓN NUEVA PRUEBA
             item {
-                Button(
-                    onClick = {
-                        onNavigate(Routes.REGISTRAR_PRUEBA_PARAM.replace("{codigo}", "TR-001"))
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(55.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = AzulBoton
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = null
-                    )
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Text(
-                        text = "Registrar nueva prueba",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                BotonCarga(
+                    texto = "Registrar nueva prueba",
+                    icono = Icons.Outlined.Add,
+                    cargando = false,
+                    onClick = { onNavigate(Routes.registrarPrueba(equipoPorDefecto)) }
+                )
             }
 
-            // TÍTULO RESUMEN
-            item {
-                SectionTitle(text = "Resumen")
-            }
+            item { SectionTitle(text = "Resumen") }
 
-            // ESTADÍSTICAS FILA 1
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(
                         modifier = Modifier.weight(1f),
                         title = "Pruebas",
-                        value = "24",
-                        icon = Icons.Outlined.Assignment,
-                        onClick = {
-                            onNavigate(Routes.HISTORIAL_EQUIPO_PARAM.replace("{codigo}", "TR-001"))
-                        }
+                        value = estado.totalPruebas,
+                        icon = Icons.AutoMirrored.Outlined.Assignment,
+                        onClick = { onNavigate(Routes.historialEquipo(equipoPorDefecto)) }
                     )
-
                     StatCard(
                         modifier = Modifier.weight(1f),
                         title = "Pendientes",
-                        value = "5",
-                        icon = Icons.Outlined.ListAlt,
-                        onClick = {
-                            onNavigate(Routes.PROTOCOLOS)
-                        }
+                        value = estado.protocolosPendientes,
+                        icon = Icons.Outlined.PendingActions,
+                        tint = NaranjaPendiente,
+                        onClick = { onNavigate(Routes.PROTOCOLOS) }
                     )
                 }
             }
 
-            // ESTADÍSTICAS FILA 2
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     StatCard(
                         modifier = Modifier.weight(1f),
                         title = "Protocolos",
-                        value = "19",
+                        value = estado.totalProtocolos,
                         icon = Icons.Outlined.AssignmentTurnedIn,
-                        onClick = {
-                            onNavigate(Routes.PROTOCOLOS)
-                        }
+                        onClick = { onNavigate(Routes.PROTOCOLOS) }
                     )
-
                     StatCard(
                         modifier = Modifier.weight(1f),
                         title = "Equipos",
-                        value = "32",
+                        value = estado.totalEquipos,
                         icon = Icons.Outlined.Build,
-                        onClick = {
-                            onNavigate(Routes.EQUIPOS)
-                        }
+                        onClick = { onNavigate(Routes.EQUIPOS) }
                     )
                 }
             }
 
-            // TÍTULO ACCESOS RÁPIDOS
-            item {
-                SectionTitle(text = "Accesos rápidos")
-            }
+            item { SectionTitle(text = "Accesos rápidos") }
 
-            // ACCIONES FILA 1
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     QuickAction(
                         modifier = Modifier.weight(1f),
                         title = "Equipos",
                         icon = Icons.Outlined.Build,
-                        onClick = {
-                            onNavigate(Routes.EQUIPOS)
-                        }
+                        onClick = { onNavigate(Routes.EQUIPOS) }
                     )
-
                     QuickAction(
                         modifier = Modifier.weight(1f),
                         title = "Historial",
                         icon = Icons.Outlined.History,
-                        onClick = {
-                            onNavigate(Routes.HISTORIAL_EQUIPO_PARAM.replace("{codigo}", "TR-001"))
-                        }
+                        onClick = { onNavigate(Routes.historialEquipo(equipoPorDefecto)) }
                     )
-                }
-            }
-
-            // ACCIONES FILA 2
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    QuickAction(
-                        modifier = Modifier.weight(1f),
-                        title = "Pruebas",
-                        icon = Icons.Outlined.Assignment,
-                        onClick = {
-                            onNavigate(Routes.REGISTRAR_PRUEBA_PARAM.replace("{codigo}", "TR-001"))
-                        }
-                    )
-
                     QuickAction(
                         modifier = Modifier.weight(1f),
                         title = "Protocolos",
                         icon = Icons.Outlined.AssignmentTurnedIn,
-                        onClick = {
-                            onNavigate(Routes.PROTOCOLOS)
-                        }
+                        onClick = { onNavigate(Routes.PROTOCOLOS) }
                     )
                 }
             }
 
-            // ACTIVIDAD RECIENTE
-            item {
-                SectionTitle(
-                    text = "Actividad reciente",
-                    modifier = Modifier.padding(top = 4.dp)
-                )
+            item { SectionTitle(text = "Actividad reciente", modifier = Modifier.padding(top = 4.dp)) }
+
+            if (estado.recientes.isEmpty()) {
+                item {
+                    Text(
+                        text = "Aún no registras pruebas. Usa \"Registrar nueva prueba\" para comenzar.",
+                        fontSize = 13.sp,
+                        color = TextoSecundario
+                    )
+                }
             }
 
-            // LISTA DE ACTIVIDADES
-            items(
-                listOf(
-                    "Prueba registrada - TR-001",
-                    "Protocolo generado - PR-018",
-                    "Prueba registrada - RL-004"
-                )
-            ) { actividad ->
+            items(estado.recientes, key = { it.id }) { prueba ->
                 ActivityItem(
-                    text = actividad,
-                    onClick = {
-                        if (actividad.startsWith("Prueba registrada")) {
-                            val codigo = actividad.substringAfter("Prueba registrada - ").trim()
-                            onNavigate(Routes.HISTORIAL_EQUIPO_PARAM.replace("{codigo}", codigo))
-                        } else if (actividad.startsWith("Protocolo generado")) {
-                            onNavigate(Routes.PROTOCOLOS)
-                        }
-                    }
+                    prueba = prueba,
+                    modifier = Modifier.animateItem(),
+                    onClick = { onNavigate(Routes.detallePrueba(prueba.id)) }
                 )
             }
 
-            // PIE DE PÁGINA
             item {
                 Column(
                     modifier = Modifier
@@ -314,18 +221,12 @@ fun Home(
                         .padding(top = 8.dp, bottom = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "Induztek Ingeniería SpA",
-                        fontSize = 12.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
-                    )
-
+                    Text("Induztek Ingeniería SpA", fontSize = 12.sp, color = TextoSecundario, textAlign = TextAlign.Center)
                     Text(
                         text = "Gestión de pruebas eléctricas",
                         modifier = Modifier.padding(top = 3.dp),
                         fontSize = 11.sp,
-                        color = Color.Gray,
+                        color = TextoSecundario,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -334,40 +235,34 @@ fun Home(
     }
 }
 
-// TÍTULOS DE SECCIÓN
 @Composable
-private fun SectionTitle(
-    text: String,
-    modifier: Modifier = Modifier
-) {
+private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         modifier = modifier.fillMaxWidth(),
         fontSize = 20.sp,
         fontWeight = FontWeight.Bold,
-        color = AzulElectra
+        color = AzulOscuro
     )
 }
 
-// TARJETA DE ESTADÍSTICA
 @Composable
 fun StatCard(
     modifier: Modifier = Modifier,
     title: String,
-    value: String,
+    value: Int,
     icon: ImageVector,
+    tint: Color = AzulPrincipal,
     onClick: () -> Unit = {}
 ) {
+    val animado by animateIntAsState(targetValue = value, animationSpec = tween(800), label = "contador_$title")
+
     Card(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
@@ -375,30 +270,13 @@ fun StatCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = AzulBoton,
-                modifier = Modifier.size(28.dp)
-            )
-
-            Text(
-                text = value,
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                color = AzulElectra
-            )
-
-            Text(
-                text = title,
-                fontSize = 13.sp,
-                color = Color.Gray
-            )
+            Icon(imageVector = icon, contentDescription = title, tint = tint, modifier = Modifier.size(28.dp))
+            Text(text = animado.toString(), fontSize = 25.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+            Text(text = title, fontSize = 13.sp, color = TextoSecundario)
         }
     }
 }
 
-// ACCESO RÁPIDO
 @Composable
 fun QuickAction(
     modifier: Modifier = Modifier,
@@ -410,54 +288,42 @@ fun QuickAction(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 18.dp, horizontal = 8.dp),
+                .padding(vertical = 16.dp, horizontal = 4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = AzulBoton,
-                modifier = Modifier.size(30.dp)
-            )
-
+            Icon(imageVector = icon, contentDescription = title, tint = AzulPrincipal, modifier = Modifier.size(28.dp))
             Text(
                 text = title,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
-                color = AzulElectra,
+                color = AzulOscuro,
                 textAlign = TextAlign.Center
             )
         }
     }
 }
 
-// ACTIVIDAD RECIENTE
 @Composable
 fun ActivityItem(
-    text: String,
+    prueba: Prueba,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit = {}
 ) {
+    val aprobada = prueba.resultado == OpcionesPrueba.APROBADO
+
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 1.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
             modifier = Modifier
@@ -466,32 +332,41 @@ fun ActivityItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Outlined.History,
-                contentDescription = "Actividad",
-                tint = AzulBoton,
+                imageVector = if (aprobada) Icons.Filled.CheckCircle else Icons.Filled.Error,
+                contentDescription = prueba.resultado,
+                tint = if (aprobada) VerdeExito else RojoError,
                 modifier = Modifier.size(24.dp)
             )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Text(
-                text = text,
-                modifier = Modifier.weight(1f),
-                fontSize = 14.sp,
-                color = Color(0xFF333333)
-            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Prueba registrada - ${prueba.equipo}",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AzulOscuro
+                )
+                Text(
+                    text = "${prueba.tipoPrueba} · ${prueba.fecha} ${prueba.hora}",
+                    fontSize = 12.sp,
+                    color = TextoSecundario
+                )
+            }
         }
     }
 }
 
-// VISTA PREVIA
-@Preview(
-    showBackground = true,
-    showSystemUi = true
-)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HomePreview() {
-    Home(
-        onNavigate = {}
-    )
+    ElectraTheme {
+        Home(
+            viewModel = viewModel { HomeViewModel(
+                PruebasRepositoryEnMemoria(),
+                ProtocolosRepositoryEnMemoria(),
+                UsuariosRepositoryEnMemoria(),
+                SesionEnMemoria()
+            ) },
+            onNavigate = {}
+        )
+    }
 }

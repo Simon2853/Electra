@@ -8,10 +8,9 @@ import kotlinx.coroutines.withContext
 interface ProtocolosRepository {
     suspend fun listar(): List<Protocolo>
 
-    /** Acepta el número con o sin "#". */
+
     suspend fun buscar(numero: String): Protocolo?
 
-    /** Devuelve false si no se pudo guardar (por ejemplo, número duplicado). */
     suspend fun insertar(protocolo: Protocolo): Boolean
     suspend fun cambiarEstado(numero: String, estado: String): Boolean
     suspend fun actualizarObservaciones(numero: String, observaciones: String): Boolean

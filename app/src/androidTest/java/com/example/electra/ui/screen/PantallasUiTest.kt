@@ -12,13 +12,16 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.electra.data.ProtocolosRepositoryEnMemoria
+import com.example.electra.data.SesionEnMemoria
 import com.example.electra.data.PruebasRepositoryEnMemoria
 import com.example.electra.data.UsuariosRepositoryEnMemoria
+import com.example.electra.device.ResultadoUbicacion
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
 import com.example.electra.navigation.Routes
 import com.example.electra.ui.viewmodel.DetalleProtocoloViewModel
 import com.example.electra.ui.viewmodel.HistorialEquipoViewModel
+import com.example.electra.ui.viewmodel.HomeViewModel
 import com.example.electra.ui.viewmodel.LoginViewModel
 import com.example.electra.ui.viewmodel.ProtocolosViewModel
 import com.example.electra.ui.viewmodel.RegistrarPruebaViewModel
@@ -31,7 +34,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Espera a que aparezca un nodo: las operaciones de los ViewModels son asíncronas. */
 fun ComposeContentTestRule.esperarNodo(matcher: SemanticsMatcher, timeoutMs: Long = 5_000) {
     waitUntil(timeoutMs) { onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() }
 }
@@ -48,12 +50,11 @@ class PantallasUiTest {
 
     private val botonIniciarSesion = hasText("Iniciar sesión") and hasClickAction()
 
-    // --- LOGIN ---
-
     @Test
     fun login_credencialesInvalidasMuestraError() {
         var ingreso = false
-        compose.setContent { Login(viewModel = LoginViewModel(usuarios), onLoginClick = { ingreso = true }) }
+        val vm = LoginViewModel(usuarios, SesionEnMemoria())
+        compose.setContent { Login(viewModel = vm, onLoginClick = { ingreso = true }) }
 
         compose.onNodeWithText("Usuario").performTextInput("nadie")
         compose.onNodeWithText("Contraseña").performTextInput("Clave#1234")
@@ -67,7 +68,8 @@ class PantallasUiTest {
     fun login_credencialesValidasIngresa() {
         runBlocking { usuarios.registrar("Ana Test", "anatest", "Segura#2026") }
         var ingreso = false
-        compose.setContent { Login(viewModel = LoginViewModel(usuarios), onLoginClick = { ingreso = true }) }
+        val vm = LoginViewModel(usuarios, SesionEnMemoria())
+        compose.setContent { Login(viewModel = vm, onLoginClick = { ingreso = true }) }
 
         compose.onNodeWithText("Usuario").performTextInput("anatest")
         compose.onNodeWithText("Contraseña").performTextInput("Segura#2026")
@@ -75,8 +77,6 @@ class PantallasUiTest {
 
         compose.waitUntil(5_000) { ingreso }
     }
-
-    // --- REGISTRO ---
 
     private fun llenarRegistro(nombre: String, usuario: String, clave: String, confirmar: String) {
         compose.onNodeWithText("Nombre completo").performTextInput(nombre)
@@ -87,14 +87,16 @@ class PantallasUiTest {
     }
 
     private fun mostrarRegistro(onExito: () -> Unit = {}) {
-        compose.setContent { Registro(viewModel = RegistroViewModel(usuarios), onRegistroExitoso = onExito) }
+        val vm = RegistroViewModel(usuarios)
+        compose.setContent { Registro(viewModel = vm, onRegistroExitoso = onExito) }
     }
 
     @Test
     fun registro_camposVaciosMuestraError() {
         mostrarRegistro()
         compose.onNode(hasText("Crear cuenta") and hasClickAction()).performScrollTo().performClick()
-        compose.esperarTexto("Completa todos los campos.")
+        compose.esperarTexto("Ingresa tu nombre completo.")
+        compose.esperarTexto("Ingresa un nombre de usuario.")
     }
 
     @Test
@@ -136,12 +138,14 @@ class PantallasUiTest {
         compose.esperarTexto("Ese usuario ya existe.")
     }
 
-    // --- HOME ---
+    private fun homeVm() = HomeViewModel(
+        PruebasRepositoryEnMemoria(), ProtocolosRepositoryEnMemoria(), usuarios, SesionEnMemoria()
+    )
 
     @Test
     fun home_nuevaPruebaNavegaARegistrarPrueba() {
         var ruta = ""
-        compose.setContent { Home(onNavigate = { ruta = it }) }
+        compose.setContent { Home(viewModel = homeVm(), onNavigate = { ruta = it }) }
 
         compose.onNodeWithText("Registrar nueva prueba").performClick()
         assertEquals("registrar_prueba/TR-001", ruta)
@@ -150,13 +154,11 @@ class PantallasUiTest {
     @Test
     fun home_equiposNavegaALista() {
         var ruta = ""
-        compose.setContent { Home(onNavigate = { ruta = it }) }
+        compose.setContent { Home(viewModel = homeVm(), onNavigate = { ruta = it }) }
 
         compose.onAllNodesWithText("Equipos")[0].performClick()
         assertEquals(Routes.EQUIPOS, ruta)
     }
-
-    // --- EQUIPOS ---
 
     @Test
     fun equipos_muestraLosCincoEquipos() {
@@ -167,14 +169,21 @@ class PantallasUiTest {
     @Test
     fun equipos_buscarPorCodigoFiltra() {
         compose.setContent { Equipos() }
-        compose.onNodeWithText("Buscar por código").performTextInput("tr")
+        compose.onNodeWithText("Buscar equipo").performTextInput("TR-")
+        compose.onNodeWithText("2 equipos encontrados").assertExists()
+    }
+
+    @Test
+    fun equipos_buscarPorClienteFiltra() {
+        compose.setContent { Equipos() }
+        compose.onNodeWithText("Buscar equipo").performTextInput("Pacífico")
         compose.onNodeWithText("2 equipos encontrados").assertExists()
     }
 
     @Test
     fun equipos_busquedaSinResultadosMuestraMensaje() {
         compose.setContent { Equipos() }
-        compose.onNodeWithText("Buscar por código").performTextInput("XYZ")
+        compose.onNodeWithText("Buscar equipo").performTextInput("XYZ")
         compose.onNodeWithText("No se encontraron equipos").assertExists()
     }
 
@@ -183,19 +192,30 @@ class PantallasUiTest {
         var codigo = ""
         compose.setContent { Equipos(onEquipoClick = { codigo = it }) }
 
-        compose.onNodeWithText("Buscar por código").performTextInput("RL")
+        compose.onNodeWithText("Buscar equipo").performTextInput("RL")
         compose.onNodeWithText("RL-004").performClick()
         assertEquals("RL-004", codigo)
     }
 
-    // --- REGISTRAR PRUEBA ---
+    private fun registrarVm(repo: PruebasRepositoryEnMemoria) =
+        RegistrarPruebaViewModel(repo, { ResultadoUbicacion.NoDisponible }, "RL-004")
+
+    @Test
+    fun registrarPrueba_medicionInvalidaMuestraErrorEnElCampo() {
+        compose.setContent { RegistrarPrueba(viewModel = registrarVm(PruebasRepositoryEnMemoria())) }
+
+        compose.onNodeWithText("Medición").performScrollTo().performTextInput("abc")
+        compose.onNodeWithText("Guardar prueba").performScrollTo().performClick()
+
+        compose.esperarTexto("La medición debe ser un número (ej: 125.5).")
+    }
 
     @Test
     fun registrarPrueba_sinMedicionNoGuarda() {
         val repo = PruebasRepositoryEnMemoria()
         var volvio = false
         compose.setContent {
-            RegistrarPrueba(viewModel = RegistrarPruebaViewModel(repo), codigoEquipo = "RL-004", onVolverClick = { volvio = true })
+            RegistrarPrueba(viewModel = registrarVm(repo), onPruebaGuardada = { volvio = true })
         }
 
         compose.onNodeWithText("Guardar prueba").performScrollTo().performClick()
@@ -210,10 +230,10 @@ class PantallasUiTest {
         val repo = PruebasRepositoryEnMemoria()
         var volvio = false
         compose.setContent {
-            RegistrarPrueba(viewModel = RegistrarPruebaViewModel(repo), codigoEquipo = "RL-004", onVolverClick = { volvio = true })
+            RegistrarPrueba(viewModel = registrarVm(repo), onPruebaGuardada = { volvio = true })
         }
 
-        compose.onNodeWithText("Ej: 125.5").performScrollTo().performTextInput("850")
+        compose.onNodeWithText("Medición").performScrollTo().performTextInput("850")
         compose.onNodeWithText("Guardar prueba").performScrollTo().performClick()
 
         compose.waitUntil(5_000) { volvio }
@@ -222,8 +242,6 @@ class PantallasUiTest {
         assertEquals("850", guardada.medicion)
         assertEquals("Aprobado", guardada.resultado)
     }
-
-    // --- HISTORIAL ---
 
     @Test
     fun historial_muestraPruebasDelEquipo() {
@@ -236,8 +254,9 @@ class PantallasUiTest {
             )
         )
         var idTocado = -1L
+        val vm = HistorialEquipoViewModel(repo, "TR-002")
         compose.setContent {
-            HistorialEquipo(viewModel = HistorialEquipoViewModel(repo, "TR-002"), onPruebaClick = { idTocado = it })
+            HistorialEquipo(viewModel = vm, onPruebaClick = { idTocado = it })
         }
 
         compose.esperarTexto("Cantidad de pruebas: 1")
@@ -255,15 +274,14 @@ class PantallasUiTest {
                 )
             }
         )
-        compose.setContent { HistorialEquipo(viewModel = HistorialEquipoViewModel(repo, "TR-001")) }
+        val vm = HistorialEquipoViewModel(repo, "TR-001")
+        compose.setContent { HistorialEquipo(viewModel = vm) }
 
         compose.esperarTexto("Cantidad de pruebas: 7")
         compose.onNodeWithText("Mostrando las últimas 5 de 7").assertExists()
         compose.onNodeWithText("TR-001 - Prueba 7").assertExists()
         compose.onNodeWithText("TR-001 - Prueba 2").assertDoesNotExist()
     }
-
-    // --- PROTOCOLOS ---
 
     private fun repoProtocolos() = ProtocolosRepositoryEnMemoria(
         listOf(
@@ -275,8 +293,9 @@ class PantallasUiTest {
     @Test
     fun protocolos_listaYAbreDetalleSinNumeral() {
         var numero = ""
+        val vm = ProtocolosViewModel(repoProtocolos())
         compose.setContent {
-            Protocolos(viewModel = ProtocolosViewModel(repoProtocolos()), onProtocolClick = { numero = it })
+            Protocolos(viewModel = vm, onProtocolClick = { numero = it })
         }
 
         compose.esperarTexto("2 protocolo(s) encontrado(s)")
@@ -287,19 +306,21 @@ class PantallasUiTest {
     @Test
     fun detalleProtocolo_formalizar() {
         val repo = repoProtocolos()
-        compose.setContent { DetalleProtocolo(viewModel = DetalleProtocoloViewModel(repo, "000124")) }
+        val vm = DetalleProtocoloViewModel(repo, PruebasRepositoryEnMemoria(), "000124")
+        compose.setContent { DetalleProtocolo(viewModel = vm) }
 
-        compose.esperarTexto("Estado actual: Registrado en terreno")
-        compose.onNodeWithText("Formalizar Protocolo").performScrollTo().performClick()
+        compose.esperarTexto("Registrado en terreno")
+        compose.onNodeWithText("Formalizar protocolo").performScrollTo().performClick()
 
-        compose.esperarTexto("Estado actual: Formalizado")
-        compose.onNodeWithText("Formalizar Protocolo").assertDoesNotExist()
+        compose.esperarTexto("Protocolo formalizado. Puedes compartirlo con el cliente desde el ícono superior.")
+        compose.onNodeWithText("Formalizar protocolo").assertDoesNotExist()
         assertEquals("Formalizado", repo.protocolos.first { it.numero == "#000124" }.estado)
     }
 
     @Test
     fun detalleProtocolo_inexistenteMuestraMensaje() {
-        compose.setContent { DetalleProtocolo(viewModel = DetalleProtocoloViewModel(repoProtocolos(), "999999")) }
+        val vm = DetalleProtocoloViewModel(repoProtocolos(), PruebasRepositoryEnMemoria(), "999999")
+        compose.setContent { DetalleProtocolo(viewModel = vm) }
         compose.esperarTexto("No se encontró el protocolo.")
     }
 }

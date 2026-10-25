@@ -16,10 +16,6 @@ class ProtocolosViewModel(
     private val _protocolos = MutableStateFlow<List<Protocolo>>(emptyList())
     val protocolos: StateFlow<List<Protocolo>> = _protocolos.asStateFlow()
 
-    /**
-     * La pantalla lo llama en cada ON_RESUME para reflejar protocolos recién creados.
-     * Expone solo los últimos [LIMITE_RECIENTES_POR_EQUIPO] de cada equipo; los demás siguen en la base.
-     */
     fun cargar() {
         viewModelScope.launch {
             _protocolos.value = repositorio.listar().ultimosPorEquipo { it.equipo }

@@ -15,9 +15,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
@@ -36,21 +37,29 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import com.example.electra.ui.theme.AzulOscuro
+import com.example.electra.ui.theme.AzulPrincipal
+import com.example.electra.ui.theme.Fondo
+import com.example.electra.ui.theme.NaranjaPendiente
+import com.example.electra.ui.theme.RojoError
+import com.example.electra.ui.theme.TextoSecundario
+import com.example.electra.ui.theme.VerdeExito
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.electra.data.PruebasRepositoryEnMemoria
 import com.example.electra.ui.viewmodel.HistorialEquipoViewModel
 
-private val BackgroundColor = Color(0xFFF4F7FA)
-private val DarkBlue = Color(0xFF173B57)
-private val MainBlue = Color(0xFF1769AA)
-private val SuccessGreen = Color(0xFF2E7D32)
+private val BackgroundColor = Fondo
+private val DarkBlue = AzulOscuro
+private val MainBlue = AzulPrincipal
+private val SuccessGreen = VerdeExito
 
 data class RegistroHistorial(
     val id: Long,
@@ -86,7 +95,7 @@ fun HistorialEquipo(
         }
     }
 
-    // Recarga al entrar y al volver de Registrar prueba / Detalle
+
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
@@ -96,7 +105,7 @@ fun HistorialEquipo(
             .fillMaxSize()
             .background(BackgroundColor)
     ) {
-        // Barra superior
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,7 +115,7 @@ fun HistorialEquipo(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Volver",
                     tint = DarkBlue
                 )
@@ -125,7 +134,7 @@ fun HistorialEquipo(
                 Text(
                     text = "Historial del equipo",
                     fontSize = 13.sp,
-                    color = Color.Gray
+                    color = TextoSecundario
                 )
             }
         }
@@ -136,7 +145,7 @@ fun HistorialEquipo(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Encabezado interactivo
+
             item {
                 ExposedDropdownMenuBox(
                     expanded = menuEquiposAbierto,
@@ -145,7 +154,7 @@ fun HistorialEquipo(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = Color.White),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -209,7 +218,7 @@ fun HistorialEquipo(
                 }
             }
 
-            // Resumen de mediciones
+
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -229,7 +238,7 @@ fun HistorialEquipo(
                         Text(
                             text = "Cantidad de pruebas: ${estado.totalPruebas}",
                             fontSize = 14.sp,
-                            color = Color.Gray
+                            color = TextoSecundario
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -244,20 +253,20 @@ fun HistorialEquipo(
                             Text(
                                 text = "Fecha: ${historial.first().fecha}",
                                 fontSize = 13.sp,
-                                color = Color.Gray
+                                color = TextoSecundario
                             )
                         } else {
                             Text(
                                 text = "Aún no hay mediciones guardadas para este equipo.",
                                 fontSize = 14.sp,
-                                color = Color.Gray
+                                color = TextoSecundario
                             )
                         }
                     }
                 }
             }
 
-            // Título de registros
+
             item {
                 Column {
                     Text(
@@ -271,13 +280,13 @@ fun HistorialEquipo(
                         Text(
                             text = "Mostrando las últimas ${historial.size} de ${estado.totalPruebas}",
                             fontSize = 13.sp,
-                            color = Color.Gray
+                            color = TextoSecundario
                         )
                     }
                 }
             }
 
-            // Lista de tarjetas
+
             if (historial.isEmpty()) {
                 item {
                     Card(
@@ -287,16 +296,18 @@ fun HistorialEquipo(
                         Text(
                             text = "No hay pruebas registradas para $equipoSeleccionado.",
                             modifier = Modifier.padding(20.dp),
-                            color = Color.Gray
+                            color = TextoSecundario
                         )
                     }
                 }
             } else {
-                items(historial) { registro ->
-                    HistorialCard(
-                        registro = registro,
-                        onClick = { onPruebaClick(registro.id) }
-                    )
+                items(historial, key = { it.id }) { registro ->
+                    Column(modifier = Modifier.animateItem()) {
+                        HistorialCard(
+                            registro = registro,
+                            onClick = { onPruebaClick(registro.id) }
+                        )
+                    }
                 }
             }
 
@@ -308,7 +319,7 @@ fun HistorialEquipo(
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = TextoSecundario
                 )
             }
         }
@@ -321,7 +332,7 @@ private fun HistorialCard(
     onClick: () -> Unit = {}
 ) {
     val aprobado = registro.resultado.equals("APROBADO", ignoreCase = true)
-    val colorResultado = if (aprobado) SuccessGreen else Color(0xFFC62828)
+    val colorResultado = if (aprobado) SuccessGreen else RojoError
 
     Card(
         modifier = Modifier
@@ -353,7 +364,7 @@ private fun HistorialCard(
                     Text(
                         text = registro.tipoPrueba,
                         fontSize = 13.sp,
-                        color = Color.Gray
+                        color = TextoSecundario
                     )
 
                     Spacer(modifier = Modifier.height(4.dp))
@@ -400,6 +411,6 @@ private fun HistorialCard(
 @Composable
 fun HistorialEquipoPreview() {
     MaterialTheme {
-        HistorialEquipo(viewModel = HistorialEquipoViewModel(PruebasRepositoryEnMemoria(), "TR-001"))
+        HistorialEquipo(viewModel = viewModel { HistorialEquipoViewModel(PruebasRepositoryEnMemoria(), "TR-001") })
     }
 }

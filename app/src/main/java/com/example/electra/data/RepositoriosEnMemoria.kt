@@ -4,7 +4,6 @@ import com.example.electra.model.CatalogoEquipos
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
 
-// Implementaciones en memoria que imitan a las de SQLite. Se usan en los previews y en los tests.
 
 class PruebasRepositoryEnMemoria(
     iniciales: List<Prueba> = emptyList()
@@ -23,6 +22,8 @@ class PruebasRepositoryEnMemoria(
 
     override suspend fun listarPorEquipo(codigoEquipo: String): List<Prueba> =
         pruebas.filter { it.equipo.trim() == codigoEquipo.trim() }.sortedByDescending { it.id }
+
+    override suspend fun listarTodas(): List<Prueba> = pruebas.sortedByDescending { it.id }
 
     override suspend fun equiposConRegistros(): List<String> =
         pruebas.map { it.equipo }.distinct().sorted()
@@ -64,15 +65,27 @@ class ProtocolosRepositoryEnMemoria(
 
 class UsuariosRepositoryEnMemoria : UsuariosRepository {
 
-    private val usuarios = mutableMapOf<String, String>()
+    private val usuarios = mutableMapOf<String, Pair<String, String>>()
 
     override suspend fun registrar(nombre: String, usuario: String, contrasena: String): Boolean {
         val clave = usuario.trim()
         if (clave.isBlank() || clave in usuarios) return false
-        usuarios[clave] = contrasena
+        usuarios[clave] = nombre.trim() to contrasena
         return true
     }
 
     override suspend fun validar(usuario: String, contrasena: String): Boolean =
-        usuarios[usuario.trim()] == contrasena
+        usuarios[usuario.trim()]?.second == contrasena
+
+    override suspend fun nombre(usuario: String): String? = usuarios[usuario.trim()]?.first
+}
+
+class SesionEnMemoria(private var usuario: String? = null) : SesionRepository {
+    override fun usuarioActual(): String? = usuario
+    override fun iniciar(usuario: String) {
+        this.usuario = usuario
+    }
+    override fun cerrar() {
+        usuario = null
+    }
 }

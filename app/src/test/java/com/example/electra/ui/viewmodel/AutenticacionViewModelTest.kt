@@ -1,9 +1,11 @@
 package com.example.electra.ui.viewmodel
 
+import com.example.electra.data.SesionEnMemoria
 import com.example.electra.data.UsuariosRepositoryEnMemoria
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -15,91 +17,126 @@ class AutenticacionViewModelTest {
     val mainRule = MainDispatcherRule()
 
     private val usuarios = UsuariosRepositoryEnMemoria()
-
-    // --- LOGIN ---
+    private val sesion = SesionEnMemoria()
 
     @Test
-    fun login_usuarioVacioMarcaErrorSinConsultar() {
-        val vm = LoginViewModel(usuarios)
-        vm.iniciarSesion("   ", "Segura#2026")
+    fun login_noMuestraErroresAntesDelPrimerIntento() {
+        val vm = LoginViewModel(usuarios, sesion)
 
-        assertTrue(vm.uiState.value.error)
+        assertNull(vm.uiState.value.errorUsuario)
+        assertNull(vm.uiState.value.errorContrasena)
+    }
+
+    @Test
+    fun login_camposVaciosMarcanErrorPorCampoSinConsultar() {
+        val vm = LoginViewModel(usuarios, sesion)
+        vm.onUsuarioChange("   ")
+
+        vm.iniciarSesion()
+
+        assertEquals("Ingresa tu usuario.", vm.uiState.value.errorUsuario)
+        assertEquals("Ingresa tu contraseña.", vm.uiState.value.errorContrasena)
+        assertEquals(1, vm.uiState.value.intentosFallidos)
+        assertFalse(vm.uiState.value.credencialesInvalidas)
         assertFalse(vm.uiState.value.ingresoExitoso)
     }
 
     @Test
     fun login_credencialesIncorrectasMarcaError() = runTest {
         usuarios.registrar("Ana", "anatest", "Segura#2026")
-        val vm = LoginViewModel(usuarios)
+        val vm = LoginViewModel(usuarios, sesion)
+        vm.onUsuarioChange("anatest")
+        vm.onContrasenaChange("otra")
 
-        vm.iniciarSesion("anatest", "otra")
+        vm.iniciarSesion()
 
-        assertTrue(vm.uiState.value.error)
+        assertTrue(vm.uiState.value.credencialesInvalidas)
         assertFalse(vm.uiState.value.ingresoExitoso)
+        assertNull(sesion.usuarioActual())
+
+        vm.onContrasenaChange("Segura#2026")
+        assertFalse(vm.uiState.value.credencialesInvalidas)
     }
 
     @Test
-    fun login_credencialesCorrectasIngresaYSeConsume() = runTest {
+    fun login_credencialesCorrectasIngresaGuardaSesionYSeConsume() = runTest {
         usuarios.registrar("Ana", "anatest", "Segura#2026")
-        val vm = LoginViewModel(usuarios)
+        val vm = LoginViewModel(usuarios, sesion)
+        vm.onUsuarioChange("  anatest ")
+        vm.onContrasenaChange("Segura#2026")
 
-        vm.iniciarSesion("  anatest ", "Segura#2026")
+        vm.iniciarSesion()
+
         assertTrue(vm.uiState.value.ingresoExitoso)
-        assertFalse(vm.uiState.value.error)
+        assertEquals("anatest", sesion.usuarioActual())
 
         vm.ingresoConsumido()
         assertFalse(vm.uiState.value.ingresoExitoso)
     }
 
-    // --- REGISTRO ---
+    private fun RegistroViewModel.completar(
+        nombre: String = "Ana Test",
+        usuario: String = "anatest",
+        contrasena: String = "Segura#2026",
+        confirmar: String = contrasena
+    ) {
+        onNombreChange(nombre)
+        onUsuarioChange(usuario)
+        onContrasenaChange(contrasena)
+        onConfirmarChange(confirmar)
+    }
 
     @Test
     fun registro_exitosoGuardaElUsuario() = runTest {
         val vm = RegistroViewModel(usuarios)
+        vm.completar(usuario = " anatest ")
 
-        vm.registrar("Ana Test", " anatest ", "Segura#2026", "Segura#2026")
+        vm.registrar()
 
         assertTrue(vm.uiState.value.registroExitoso)
-        assertEquals("", vm.uiState.value.error)
         assertTrue(usuarios.validar("anatest", "Segura#2026"))
+        assertEquals("Ana Test", usuarios.nombre("anatest"))
     }
 
     @Test
-    fun registro_usuarioDuplicadoMuestraError() = runTest {
+    fun registro_usuarioDuplicadoMarcaElCampoUsuario() = runTest {
         usuarios.registrar("Otro", "anatest", "Otra#2026x")
         val vm = RegistroViewModel(usuarios)
+        vm.completar()
 
-        vm.registrar("Ana Test", "anatest", "Segura#2026", "Segura#2026")
+        vm.registrar()
 
-        assertEquals("Ese usuario ya existe.", vm.uiState.value.error)
+        assertEquals("Ese usuario ya existe.", vm.uiState.value.errorUsuario)
         assertFalse(vm.uiState.value.registroExitoso)
+
+        vm.onUsuarioChange("anatest2")
+        assertNull(vm.uiState.value.errorUsuario)
     }
 
     @Test
-    fun registro_formularioInvalidoNoLlamaAlRepositorio() = runTest {
+    fun registro_formularioInvalidoMuestraErroresPorCampoYNoGuarda() = runTest {
+        val vm = RegistroViewModel(usuarios)
+        vm.completar(nombre = "", usuario = "an a", contrasena = "corta", confirmar = "otra")
+
+        vm.registrar()
+
+        val estado = vm.uiState.value
+        assertNotNull(estado.errorNombre)
+        assertEquals("El usuario no debe contener espacios.", estado.errorUsuario)
+        assertEquals("La clave debe tener al menos 8 caracteres.", estado.errorContrasena)
+        assertEquals("Las contraseñas no coinciden.", estado.errorConfirmar)
+        assertEquals(1, estado.intentosFallidos)
+        assertFalse(usuarios.validar("an a", "corta"))
+    }
+
+    @Test
+    fun registro_requisitosSeActualizanMientrasSeEscribe() {
         val vm = RegistroViewModel(usuarios)
 
-        vm.registrar("Ana Test", "anatest", "corta", "corta")
+        vm.onContrasenaChange("abc")
+        assertEquals(1, vm.uiState.value.requisitos.count { it.second })
 
-        assertEquals("La clave debe tener al menos 8 caracteres.", vm.uiState.value.error)
-        assertFalse(usuarios.validar("anatest", "corta"))
-    }
-
-    // --- VALIDACIONES DEL FORMULARIO ---
-
-    @Test
-    fun validarRegistro_reglas() {
-        val ok = "Segura#2026"
-        assertEquals("Completa todos los campos.", validarRegistro("", "u", ok, ok))
-        assertEquals("El usuario no debe contener espacios.", validarRegistro("Ana", "ana test", ok, ok))
-        assertEquals("La clave no puede superar los 20 caracteres.", validarRegistro("Ana", "anat", "Segura#2026Segura#2026", "x"))
-        assertEquals("La clave debe incluir al menos una letra mayúscula.", validarRegistro("Ana", "anat", "segura#2026", "x"))
-        assertEquals("La clave debe incluir al menos una letra minúscula.", validarRegistro("Ana", "anat", "SEGURA#2026", "x"))
-        assertEquals("La clave debe incluir al menos un número.", validarRegistro("Ana", "anat", "Segura#clave", "x"))
-        assertEquals("La clave debe incluir un carácter especial: ! @ # $ % & * ?", validarRegistro("Ana", "anat", "Segura2026", "x"))
-        assertEquals("No incluyas el nombre de la aplicación.", validarRegistro("Ana", "anat", "Electra#2026", "x"))
-        assertEquals("No incluyas tu nombre ni tu usuario.", validarRegistro("Marcela", "anat", "Marcela#2026", "x"))
-        assertEquals("Las contraseñas no coinciden.", validarRegistro("Ana", "anat", ok, "Segura#2027"))
-        assertNull(validarRegistro("Ana", "anat", ok, ok))
+        vm.onContrasenaChange("Segura#2026")
+        assertTrue(vm.uiState.value.requisitos.all { it.second })
     }
 }

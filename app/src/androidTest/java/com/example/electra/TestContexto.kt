@@ -10,11 +10,6 @@ import java.io.File
 
 private const val PREFIJO = "test_"
 
-/**
- * Contexto de la app con almacenamiento aislado: conserva los recursos reales (logo, strings),
- * pero la base de datos y las SharedPreferences se guardan con prefijo "test_", así los tests
- * nunca leen ni modifican los datos reales del dispositivo.
- */
 class ContextoAislado(base: Context) : ContextWrapper(base) {
 
     override fun getApplicationContext(): Context = this
@@ -48,5 +43,7 @@ fun contextoDePrueba(): Context =
 fun limpiarAlmacenamiento(contexto: Context) {
     contexto.deleteDatabase("electra.db")
     contexto.getSharedPreferences("electra_usuarios", Context.MODE_PRIVATE)
+        .edit().clear().commit()
+    contexto.getSharedPreferences("electra_sesion", Context.MODE_PRIVATE)
         .edit().clear().commit()
 }
