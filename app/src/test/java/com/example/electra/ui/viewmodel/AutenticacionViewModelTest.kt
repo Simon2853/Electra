@@ -2,6 +2,7 @@ package com.example.electra.ui.viewmodel
 
 import com.example.electra.data.SesionEnMemoria
 import com.example.electra.data.UsuariosRepositoryEnMemoria
+import com.example.electra.model.Avatar
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -211,5 +212,120 @@ class AutenticacionViewModelTest {
         assertEquals("Las contraseñas no coinciden.", estado.errorConfirmar)
         assertFalse(estado.datosNoCoinciden)
         assertTrue(usuarios.validar("anatest", "Segura#2026"))
+    }
+
+    @Test
+    fun editarPerfil_cargaElNombreYGuardaElNuevo() = runTest {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        sesion.iniciar("anatest")
+        val vm = EditarPerfilViewModel(usuarios, sesion)
+        assertEquals("Ana Test", vm.uiState.value.nombre)
+        assertEquals("anatest", vm.uiState.value.usuario)
+
+        vm.onNombreChange("  Ana María Test ")
+        vm.guardar()
+
+        assertTrue(vm.uiState.value.guardado)
+        assertEquals("Ana María Test", usuarios.nombre("anatest"))
+        assertTrue(usuarios.validar("anatest", "Segura#2026"))
+    }
+
+    @Test
+    fun editarPerfil_guardaIconoYColorDelAvatar() = runTest {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        sesion.iniciar("anatest")
+        val vm = EditarPerfilViewModel(usuarios, sesion)
+        assertEquals(Avatar(), vm.uiState.value.avatar)
+
+        vm.onIconoChange("ubicacion")
+        vm.onColorChange("verde")
+        vm.onFondoChange("lavanda")
+        vm.guardar()
+
+        assertTrue(vm.uiState.value.guardado)
+        assertEquals(Avatar(icono = "ubicacion", color = "verde", fondo = "lavanda"), usuarios.avatar("anatest"))
+    }
+
+    @Test
+    fun editarPerfil_nombreInvalidoNoGuarda() = runTest {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        sesion.iniciar("anatest")
+        val vm = EditarPerfilViewModel(usuarios, sesion)
+
+        vm.onNombreChange("A1")
+        vm.guardar()
+
+        assertNotNull(vm.uiState.value.errorNombre)
+        assertEquals(1, vm.uiState.value.intentosFallidos)
+        assertFalse(vm.uiState.value.guardado)
+        assertEquals("Ana Test", usuarios.nombre("anatest"))
+    }
+
+    private fun CambiarContrasenaViewModel.completar(
+        actual: String = "Segura#2026",
+        nueva: String = "Nueva#2027x",
+        confirmar: String = nueva
+    ) {
+        onActualChange(actual)
+        onNuevaChange(nueva)
+        onConfirmarChange(confirmar)
+    }
+
+    private suspend fun sesionDeAna() {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        sesion.iniciar("anatest")
+    }
+
+    @Test
+    fun cambiarContrasena_conActualCorrectaLaCambia() = runTest {
+        sesionDeAna()
+        val vm = CambiarContrasenaViewModel(usuarios, sesion)
+        vm.completar()
+
+        vm.cambiar()
+
+        assertTrue(vm.uiState.value.cambiada)
+        assertTrue(usuarios.validar("anatest", "Nueva#2027x"))
+        assertFalse(usuarios.validar("anatest", "Segura#2026"))
+    }
+
+    @Test
+    fun cambiarContrasena_conActualIncorrectaMarcaElCampo() = runTest {
+        sesionDeAna()
+        val vm = CambiarContrasenaViewModel(usuarios, sesion)
+        vm.completar(actual = "Equivocada#1")
+
+        vm.cambiar()
+
+        assertEquals("La contraseña actual no es correcta.", vm.uiState.value.errorActual)
+        assertFalse(vm.uiState.value.cambiada)
+        assertTrue(usuarios.validar("anatest", "Segura#2026"))
+
+        vm.onActualChange("Segura#2026")
+        assertNull(vm.uiState.value.errorActual)
+    }
+
+    @Test
+    fun cambiarContrasena_nuevaIgualALaActualSeRechaza() = runTest {
+        sesionDeAna()
+        val vm = CambiarContrasenaViewModel(usuarios, sesion)
+        vm.completar(nueva = "Segura#2026")
+
+        vm.cambiar()
+
+        assertEquals("La nueva contraseña debe ser distinta de la actual.", vm.uiState.value.errorNueva)
+        assertFalse(vm.uiState.value.cambiada)
+    }
+
+    @Test
+    fun cambiarContrasena_nuevaConElNombreDelUsuarioSeRechaza() = runTest {
+        sesionDeAna()
+        val vm = CambiarContrasenaViewModel(usuarios, sesion)
+        vm.completar(nueva = "Anatest#2027")
+
+        vm.cambiar()
+
+        assertEquals("No incluyas tu nombre ni tu usuario.", vm.uiState.value.errorNueva)
+        assertFalse(vm.uiState.value.cambiada)
     }
 }

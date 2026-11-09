@@ -1,5 +1,6 @@
 package com.example.electra.data
 
+import com.example.electra.model.Avatar
 import com.example.electra.model.CatalogoEquipos
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
@@ -66,6 +67,7 @@ class ProtocolosRepositoryEnMemoria(
 class UsuariosRepositoryEnMemoria : UsuariosRepository {
 
     private val usuarios = mutableMapOf<String, Pair<String, String>>()
+    private val avatares = mutableMapOf<String, Avatar>()
 
     override suspend fun registrar(nombre: String, usuario: String, contrasena: String): Boolean {
         val clave = usuario.trim()
@@ -82,6 +84,30 @@ class UsuariosRepositoryEnMemoria : UsuariosRepository {
         val (registrado, _) = usuarios[clave] ?: return false
         if (!registrado.equals(nombre.trim(), ignoreCase = true)) return false
         usuarios[clave] = registrado to nueva
+        return true
+    }
+
+    override suspend fun cambiarContrasena(usuario: String, actual: String, nueva: String): Boolean {
+        val clave = usuario.trim()
+        val (nombre, guardada) = usuarios[clave] ?: return false
+        if (guardada != actual) return false
+        usuarios[clave] = nombre to nueva
+        return true
+    }
+
+    override suspend fun actualizarNombre(usuario: String, nombre: String): Boolean {
+        val clave = usuario.trim()
+        val (_, contrasena) = usuarios[clave] ?: return false
+        usuarios[clave] = nombre.trim() to contrasena
+        return true
+    }
+
+    override suspend fun avatar(usuario: String): Avatar = avatares[usuario.trim()] ?: Avatar()
+
+    override suspend fun actualizarAvatar(usuario: String, avatar: Avatar): Boolean {
+        val clave = usuario.trim()
+        if (clave !in usuarios) return false
+        avatares[clave] = avatar
         return true
     }
 

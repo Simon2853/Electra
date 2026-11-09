@@ -29,6 +29,8 @@ object Routes {
     const val DETALLE_PRUEBA_PARAM = "detalle_prueba/{idPrueba}"
 
     const val PERFIL = "perfil"
+    const val EDITAR_PERFIL = "editar_perfil"
+    const val CAMBIAR_CONTRASENA = "cambiar_contrasena"
 
     fun detalleEquipo(codigo: String): String = "$DETALLE_EQUIPO/$codigo"
 

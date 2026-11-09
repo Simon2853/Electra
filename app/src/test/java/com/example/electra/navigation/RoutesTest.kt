@@ -53,7 +53,7 @@ class RoutesTest {
             Routes.DETALLE_EQUIPO_PARAM, Routes.REGISTRAR_PRUEBA_PARAM,
             Routes.CONFIRMACION_PRUEBA_PARAM, Routes.PROTOCOLOS, Routes.PROTOCOLO_PARAM,
             Routes.CREAR_PROTOCOLO, Routes.HISTORIAL_EQUIPO_PARAM,
-            Routes.DETALLE_PRUEBA_PARAM, Routes.PERFIL
+            Routes.DETALLE_PRUEBA_PARAM, Routes.PERFIL, Routes.EDITAR_PERFIL, Routes.CAMBIAR_CONTRASENA
         )
         assertEquals(rutas.size, rutas.toSet().size)
     }

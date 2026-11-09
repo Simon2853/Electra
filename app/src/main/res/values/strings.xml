@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Electra</string>
+    <string name="cd_mostrar_contrasena">Mostrar contraseña</string>
+    <string name="cd_ocultar_contrasena">Ocultar contraseña</string>
 </resources>

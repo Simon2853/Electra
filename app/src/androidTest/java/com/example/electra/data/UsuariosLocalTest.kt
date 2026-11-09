@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.electra.contextoDePrueba
 import com.example.electra.limpiarAlmacenamiento
+import com.example.electra.model.Avatar
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -80,6 +82,37 @@ class UsuariosLocalTest {
         assertFalse(UsuariosLocal.restablecer(contexto, "anatest", "Otra", "Nueva#2027x"))
         assertFalse(UsuariosLocal.restablecer(contexto, "nadie", "Ana Test", "Nueva#2027x"))
         assertTrue(UsuariosLocal.validar(contexto, "anatest", "Segura#2026"))
+    }
+
+    @Test
+    fun cambiarContrasena_exigeLaContrasenaActual() {
+        UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
+
+        assertFalse(UsuariosLocal.cambiarContrasena(contexto, "anatest", "Equivocada#1", "Nueva#2027x"))
+        assertTrue(UsuariosLocal.validar(contexto, "anatest", "Segura#2026"))
+
+        assertTrue(UsuariosLocal.cambiarContrasena(contexto, "anatest", "Segura#2026", "Nueva#2027x"))
+        assertTrue(UsuariosLocal.validar(contexto, "anatest", "Nueva#2027x"))
+    }
+
+    @Test
+    fun actualizarNombre_cambiaSoloElNombre() {
+        UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
+
+        assertTrue(UsuariosLocal.actualizarNombre(contexto, "anatest", " Ana María "))
+        assertEquals("Ana María", UsuariosLocal.nombre(contexto, "anatest"))
+        assertTrue(UsuariosLocal.validar(contexto, "anatest", "Segura#2026"))
+        assertFalse(UsuariosLocal.actualizarNombre(contexto, "nadie", "Otra"))
+    }
+
+    @Test
+    fun avatar_usaElPorDefectoYGuardaElElegido() {
+        UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
+        assertEquals(Avatar(), UsuariosLocal.avatar(contexto, "anatest"))
+
+        assertTrue(UsuariosLocal.actualizarAvatar(contexto, "anatest", Avatar("correo", "rojo", "crema")))
+        assertEquals(Avatar("correo", "rojo", "crema"), UsuariosLocal.avatar(contexto, "anatest"))
+        assertFalse(UsuariosLocal.actualizarAvatar(contexto, "nadie", Avatar()))
     }
 
     @Test

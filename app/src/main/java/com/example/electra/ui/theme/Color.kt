@@ -13,3 +13,5 @@ val RojoSuave = Color(0xFFFDECEA)
 val NaranjaPendiente = Color(0xFFE68A00)
 val NaranjaSuave = Color(0xFFFFF3E0)
 val TextoSecundario = Color(0xFF6B7280)
+
+val Blanco = Color.White

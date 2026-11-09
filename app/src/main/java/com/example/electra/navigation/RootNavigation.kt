@@ -14,11 +14,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.electra.data.AppContainer
+import com.example.electra.ui.screen.CambiarContrasena
 import com.example.electra.ui.screen.ConfirmacionPrueba
 import com.example.electra.ui.screen.CrearProtocolo
 import com.example.electra.ui.screen.DetalleEquipo
 import com.example.electra.ui.screen.DetalleProtocolo
 import com.example.electra.ui.screen.DetallePrueba
+import com.example.electra.ui.screen.EditarPerfil
 import com.example.electra.ui.screen.Equipos
 import com.example.electra.ui.screen.HistorialEquipo
 import com.example.electra.ui.screen.Home
@@ -28,9 +30,11 @@ import com.example.electra.ui.screen.Protocolos
 import com.example.electra.ui.screen.RecuperarContrasena
 import com.example.electra.ui.screen.RegistrarPrueba
 import com.example.electra.ui.screen.Registro
+import com.example.electra.ui.viewmodel.CambiarContrasenaViewModel
 import com.example.electra.ui.viewmodel.CrearProtocoloViewModel
 import com.example.electra.ui.viewmodel.DetalleProtocoloViewModel
 import com.example.electra.ui.viewmodel.DetallePruebaViewModel
+import com.example.electra.ui.viewmodel.EditarPerfilViewModel
 import com.example.electra.ui.viewmodel.HistorialEquipoViewModel
 import com.example.electra.ui.viewmodel.HomeViewModel
 import com.example.electra.ui.viewmodel.LoginViewModel
@@ -240,7 +244,25 @@ fun RootNavigation(contenedor: AppContainer) {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
-                }
+                },
+                onEditarPerfilClick = { navController.navigate(Routes.EDITAR_PERFIL) },
+                onCambiarContrasenaClick = { navController.navigate(Routes.CAMBIAR_CONTRASENA) }
+            )
+        }
+
+        composable(Routes.EDITAR_PERFIL) {
+            EditarPerfil(
+                viewModel = viewModel { EditarPerfilViewModel(contenedor.usuarios, contenedor.sesion) },
+                onVolverClick = { navController.popBackStack() },
+                onPerfilGuardado = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.CAMBIAR_CONTRASENA) {
+            CambiarContrasena(
+                viewModel = viewModel { CambiarContrasenaViewModel(contenedor.usuarios, contenedor.sesion) },
+                onVolverClick = { navController.popBackStack() },
+                onContrasenaCambiada = { navController.popBackStack() }
             )
         }
     }
