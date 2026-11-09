@@ -77,6 +77,14 @@ class UsuariosRepositoryEnMemoria : UsuariosRepository {
     override suspend fun validar(usuario: String, contrasena: String): Boolean =
         usuarios[usuario.trim()]?.second == contrasena
 
+    override suspend fun restablecer(usuario: String, nombre: String, nueva: String): Boolean {
+        val clave = usuario.trim()
+        val (registrado, _) = usuarios[clave] ?: return false
+        if (!registrado.equals(nombre.trim(), ignoreCase = true)) return false
+        usuarios[clave] = registrado to nueva
+        return true
+    }
+
     override suspend fun nombre(usuario: String): String? = usuarios[usuario.trim()]?.first
 }
 

@@ -47,6 +47,28 @@ object UsuariosLocal {
         return guardado == hash(contrasena)
     }
 
+    fun restablecer(
+        context: Context,
+        usuario: String,
+        nombre: String,
+        nueva: String
+    ): Boolean {
+        val prefs = context.getSharedPreferences(
+            PREFS,
+            Context.MODE_PRIVATE
+        )
+
+        val clave = usuario.trim()
+        if (!prefs.contains("hash_$clave")) return false
+
+        val registrado = prefs.getString("nombre_$clave", null) ?: return false
+        if (!registrado.equals(nombre.trim(), ignoreCase = true)) return false
+
+        return prefs.edit()
+            .putString("hash_$clave", hash(nueva))
+            .commit()
+    }
+
     fun nombre(context: Context, usuario: String): String? =
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getString("nombre_${usuario.trim()}", null)

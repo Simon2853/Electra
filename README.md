@@ -28,8 +28,8 @@ transcribe días después. Electra:
 
 | Requisito de la evaluación | Implementación |
 |---|---|
-| Interfaz organizada y navegación clara | Material 3 con paleta corporativa centralizada (`ui/theme`), barra superior común, Home con resumen real, acceso a Perfil, 13 pantallas conectadas en un `NavHost`. |
-| Formularios validados con íconos y mensajes | Login, Registro, Registrar prueba, Crear protocolo y Editar observación. Cada campo muestra ícono de error rojo + mensaje animado o check verde si es válido, contador de caracteres y requisitos de contraseña en vivo. |
+| Interfaz organizada y navegación clara | Material 3 con paleta corporativa centralizada (`ui/theme`), barra superior común, Home con resumen real, acceso a Perfil, 14 pantallas conectadas en un `NavHost`. |
+| Formularios validados con íconos y mensajes | Login, Registro, Recuperar contraseña, Registrar prueba, Crear protocolo y Editar observación. Cada campo muestra ícono de error rojo + mensaje animado o check verde si es válido, contador de caracteres y requisitos de contraseña en vivo. |
 | Validaciones desde la lógica | Reglas puras en `validation/Validaciones.kt`; los ViewModels exponen el error de cada campo en su `UiState` y la UI solo lo pinta. |
 | Animaciones | Transiciones entre pantallas (deslizamiento + fundido), sacudida del formulario al fallar, mensajes de error que se despliegan, ícono de campo con rebote, botón que se encoge al presionar y muestra progreso, barra de fortaleza de contraseña, contadores del Home, check animado en la confirmación, cambio de color de estado, listas con `animateItem`. |
 | Estructura modular + persistencia local | MVVM con repositorios e inyección manual (`AppContainer`); SQLite (`PruebaDbHelper`, versión 3 con migraciones) para pruebas y protocolos; usuarios (contraseña guardada como hash SHA-256) y sesión en `SharedPreferences`. |

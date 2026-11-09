@@ -25,6 +25,7 @@ import com.example.electra.ui.screen.Home
 import com.example.electra.ui.screen.Login
 import com.example.electra.ui.screen.Perfil
 import com.example.electra.ui.screen.Protocolos
+import com.example.electra.ui.screen.RecuperarContrasena
 import com.example.electra.ui.screen.RegistrarPrueba
 import com.example.electra.ui.screen.Registro
 import com.example.electra.ui.viewmodel.CrearProtocoloViewModel
@@ -35,6 +36,7 @@ import com.example.electra.ui.viewmodel.HomeViewModel
 import com.example.electra.ui.viewmodel.LoginViewModel
 import com.example.electra.ui.viewmodel.PerfilViewModel
 import com.example.electra.ui.viewmodel.ProtocolosViewModel
+import com.example.electra.ui.viewmodel.RecuperarContrasenaViewModel
 import com.example.electra.ui.viewmodel.RegistrarPruebaViewModel
 import com.example.electra.ui.viewmodel.RegistroViewModel
 
@@ -75,7 +77,16 @@ fun RootNavigation(contenedor: AppContainer) {
                         launchSingleTop = true
                     }
                 },
-                onRegistroClick = { navController.navigate(Routes.REGISTRO) }
+                onRegistroClick = { navController.navigate(Routes.REGISTRO) },
+                onRecuperarClick = { navController.navigate(Routes.RECUPERAR_CONTRASENA) }
+            )
+        }
+
+        composable(Routes.RECUPERAR_CONTRASENA) {
+            RecuperarContrasena(
+                viewModel = viewModel { RecuperarContrasenaViewModel(contenedor.usuarios) },
+                onVolverClick = { navController.popBackStack() },
+                onContrasenaRestablecida = { navController.popBackStack() }
             )
         }
 

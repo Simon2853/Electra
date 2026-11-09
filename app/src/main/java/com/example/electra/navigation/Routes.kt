@@ -3,6 +3,7 @@ package com.example.electra.navigation
 object Routes {
     const val LOGIN = "login"
     const val REGISTRO = "registro"
+    const val RECUPERAR_CONTRASENA = "recuperar_contrasena"
 
     const val HOME = "home"
     const val EQUIPOS = "equipos"

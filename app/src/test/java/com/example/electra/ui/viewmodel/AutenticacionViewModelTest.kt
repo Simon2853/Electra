@@ -139,4 +139,77 @@ class AutenticacionViewModelTest {
         vm.onContrasenaChange("Segura#2026")
         assertTrue(vm.uiState.value.requisitos.all { it.second })
     }
+
+    private fun RecuperarContrasenaViewModel.completar(
+        usuario: String = "anatest",
+        nombre: String = "Ana Test",
+        contrasena: String = "Nueva#2027x",
+        confirmar: String = contrasena
+    ) {
+        onUsuarioChange(usuario)
+        onNombreChange(nombre)
+        onContrasenaChange(contrasena)
+        onConfirmarChange(confirmar)
+    }
+
+    @Test
+    fun recuperar_datosCorrectosCambiaLaContrasena() = runTest {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        val vm = RecuperarContrasenaViewModel(usuarios)
+        vm.completar(nombre = " ana test ")
+
+        vm.restablecer()
+
+        assertTrue(vm.uiState.value.restablecida)
+        assertTrue(usuarios.validar("anatest", "Nueva#2027x"))
+        assertFalse(usuarios.validar("anatest", "Segura#2026"))
+
+        vm.restablecidaConsumida()
+        assertFalse(vm.uiState.value.restablecida)
+    }
+
+    @Test
+    fun recuperar_nombreQueNoCoincideNoCambiaNada() = runTest {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        val vm = RecuperarContrasenaViewModel(usuarios)
+        vm.completar(nombre = "Otra Persona")
+
+        vm.restablecer()
+
+        assertTrue(vm.uiState.value.datosNoCoinciden)
+        assertFalse(vm.uiState.value.restablecida)
+        assertEquals(1, vm.uiState.value.intentosFallidos)
+        assertTrue(usuarios.validar("anatest", "Segura#2026"))
+
+        vm.onNombreChange("Ana Test")
+        assertFalse(vm.uiState.value.datosNoCoinciden)
+    }
+
+    @Test
+    fun recuperar_usuarioInexistenteMarcaDatosNoCoinciden() = runTest {
+        val vm = RecuperarContrasenaViewModel(usuarios)
+        vm.completar(usuario = "nadie")
+
+        vm.restablecer()
+
+        assertTrue(vm.uiState.value.datosNoCoinciden)
+        assertFalse(vm.uiState.value.restablecida)
+    }
+
+    @Test
+    fun recuperar_formularioInvalidoMuestraErroresYNoConsulta() = runTest {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        val vm = RecuperarContrasenaViewModel(usuarios)
+        vm.completar(usuario = "", nombre = "", contrasena = "corta", confirmar = "otra")
+
+        vm.restablecer()
+
+        val estado = vm.uiState.value
+        assertEquals("Ingresa tu usuario.", estado.errorUsuario)
+        assertNotNull(estado.errorNombre)
+        assertEquals("La clave debe tener al menos 8 caracteres.", estado.errorContrasena)
+        assertEquals("Las contraseñas no coinciden.", estado.errorConfirmar)
+        assertFalse(estado.datosNoCoinciden)
+        assertTrue(usuarios.validar("anatest", "Segura#2026"))
+    }
 }

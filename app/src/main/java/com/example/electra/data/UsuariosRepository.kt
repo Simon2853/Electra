@@ -10,6 +10,8 @@ interface UsuariosRepository {
     suspend fun registrar(nombre: String, usuario: String, contrasena: String): Boolean
     suspend fun validar(usuario: String, contrasena: String): Boolean
 
+    suspend fun restablecer(usuario: String, nombre: String, nueva: String): Boolean
+
     suspend fun nombre(usuario: String): String?
 }
 
@@ -26,6 +28,11 @@ class LocalUsuariosRepository(
     override suspend fun validar(usuario: String, contrasena: String): Boolean = withContext(io) {
         UsuariosLocal.validar(context, usuario, contrasena)
     }
+
+    override suspend fun restablecer(usuario: String, nombre: String, nueva: String): Boolean =
+        withContext(io) {
+            UsuariosLocal.restablecer(context, usuario, nombre, nueva)
+        }
 
     override suspend fun nombre(usuario: String): String? = withContext(io) {
         UsuariosLocal.nombre(context, usuario)

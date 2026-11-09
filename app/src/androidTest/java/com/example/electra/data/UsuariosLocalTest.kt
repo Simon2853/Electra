@@ -65,6 +65,24 @@ class UsuariosLocalTest {
     }
 
     @Test
+    fun restablecer_conNombreCorrectoCambiaLaContrasena() {
+        UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
+
+        assertTrue(UsuariosLocal.restablecer(contexto, "anatest", "ana test", "Nueva#2027x"))
+        assertTrue(UsuariosLocal.validar(contexto, "anatest", "Nueva#2027x"))
+        assertFalse(UsuariosLocal.validar(contexto, "anatest", "Segura#2026"))
+    }
+
+    @Test
+    fun restablecer_conNombreIncorrectoOUsuarioInexistenteFalla() {
+        UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
+
+        assertFalse(UsuariosLocal.restablecer(contexto, "anatest", "Otra", "Nueva#2027x"))
+        assertFalse(UsuariosLocal.restablecer(contexto, "nadie", "Ana Test", "Nueva#2027x"))
+        assertTrue(UsuariosLocal.validar(contexto, "anatest", "Segura#2026"))
+    }
+
+    @Test
     fun contrasena_noSeGuardaEnTextoPlano() {
         UsuariosLocal.registrar(contexto, "Ana", "anatest", "Segura#2026")
         val guardado = contexto

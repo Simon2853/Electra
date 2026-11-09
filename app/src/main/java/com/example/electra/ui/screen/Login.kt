@@ -73,7 +73,8 @@ import com.example.electra.ui.viewmodel.LoginViewModel
 fun Login(
     viewModel: LoginViewModel,
     onLoginClick: () -> Unit,
-    onRegistroClick: () -> Unit = {}
+    onRegistroClick: () -> Unit = {},
+    onRecuperarClick: () -> Unit = {}
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     var contrasenaVisible by rememberSaveable { mutableStateOf(false) }
@@ -200,6 +201,10 @@ fun Login(
                         cargando = estado.verificando,
                         onClick = viewModel::iniciarSesion
                     )
+
+                    TextButton(onClick = onRecuperarClick, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                        Text(text = "¿Olvidaste tu contraseña?", color = AzulPrincipal, fontSize = 13.sp)
+                    }
                 }
             }
         }

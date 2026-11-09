@@ -49,7 +49,7 @@ class RoutesTest {
     @Test
     fun todasLasRutasSonUnicas() {
         val rutas = listOf(
-            Routes.LOGIN, Routes.REGISTRO, Routes.HOME, Routes.EQUIPOS,
+            Routes.LOGIN, Routes.REGISTRO, Routes.RECUPERAR_CONTRASENA, Routes.HOME, Routes.EQUIPOS,
             Routes.DETALLE_EQUIPO_PARAM, Routes.REGISTRAR_PRUEBA_PARAM,
             Routes.CONFIRMACION_PRUEBA_PARAM, Routes.PROTOCOLOS, Routes.PROTOCOLO_PARAM,
             Routes.CREAR_PROTOCOLO, Routes.HISTORIAL_EQUIPO_PARAM,

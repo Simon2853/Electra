@@ -186,7 +186,7 @@ fun Registro(
 }
 
 @Composable
-private fun BotonVisibilidad(visible: Boolean, onClick: () -> Unit) {
+internal fun BotonVisibilidad(visible: Boolean, onClick: () -> Unit) {
     IconButton(onClick = onClick) {
         Icon(
             imageVector = if (visible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
@@ -196,7 +196,7 @@ private fun BotonVisibilidad(visible: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun IndicadorFortaleza(requisitos: List<Pair<String, Boolean>>) {
+internal fun IndicadorFortaleza(requisitos: List<Pair<String, Boolean>>) {
     val cumplidos = requisitos.count { it.second }
     val progreso by animateFloatAsState(targetValue = cumplidos / requisitos.size.toFloat(), label = "fortaleza")
     val color by animateColorAsState(
