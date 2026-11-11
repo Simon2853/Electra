@@ -5,7 +5,15 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.electra.data.rolActual
+import com.example.electra.model.Rol
+import com.example.electra.ui.components.AccesoRestringido
+import com.example.electra.ui.screen.Usuarios
+import com.example.electra.ui.viewmodel.UsuariosViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -51,6 +59,24 @@ fun RootNavigation(contenedor: AppContainer) {
     val navController = rememberNavController()
 
     val inicio = remember { if (contenedor.sesion.usuarioActual() != null) Routes.HOME else Routes.LOGIN }
+
+    // Rol de la sesión. Se vuelve a leer en cada cambio de pantalla (cubre login, logout y cambios de rol).
+    // Mientras es null no se muestran acciones ni pantallas restringidas.
+    val entradaActual by navController.currentBackStackEntryAsState()
+    val rol by produceState<Rol?>(initialValue = null, entradaActual?.id) {
+        value = contenedor.usuarios.rolActual(contenedor.sesion)
+    }
+
+    /** Muestra [contenido] solo si el rol lo permite; si no, la pantalla de acceso restringido. */
+    @Composable
+    fun ConPermiso(permitido: (Rol) -> Boolean, accion: String, contenido: @Composable () -> Unit) {
+        val actual = rol
+        when {
+            actual == null -> Unit
+            permitido(actual) -> contenido()
+            else -> AccesoRestringido(rol = actual, accion = accion, onVolver = { navController.popBackStack() })
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -128,6 +154,7 @@ fun RootNavigation(contenedor: AppContainer) {
                 codigoEquipo = codigoEquipo,
                 onVolverClick = { navController.popBackStack() },
                 onNuevaPruebaClick = { navController.navigate(Routes.registrarPrueba(codigoEquipo)) },
+                puedeRegistrarPruebas = rol?.puedeRegistrarPruebas == true,
                 onHistorialClick = { navController.navigate(Routes.historialEquipo(codigoEquipo)) },
                 onProtocolosClick = { navController.navigate(Routes.PROTOCOLOS) }
             )
@@ -139,16 +166,18 @@ fun RootNavigation(contenedor: AppContainer) {
         ) { backStackEntry ->
             val codigoEquipo = backStackEntry.arguments?.getString("codigo").orEmpty()
 
-            RegistrarPrueba(
-                viewModel = viewModel { RegistrarPruebaViewModel(contenedor.pruebas, contenedor.ubicacion, codigoEquipo) },
-                onVolverClick = { navController.popBackStack() },
-                onPruebaGuardada = { id ->
+            ConPermiso({ it.puedeRegistrarPruebas }, "registrar pruebas") {
+                RegistrarPrueba(
+                    viewModel = viewModel { RegistrarPruebaViewModel(contenedor.pruebas, contenedor.ubicacion, codigoEquipo) },
+                    onVolverClick = { navController.popBackStack() },
+                    onPruebaGuardada = { id ->
 
-                    navController.navigate(Routes.confirmacionPrueba(id)) {
-                        popUpTo(Routes.REGISTRAR_PRUEBA_PARAM) { inclusive = true }
+                        navController.navigate(Routes.confirmacionPrueba(id)) {
+                            popUpTo(Routes.REGISTRAR_PRUEBA_PARAM) { inclusive = true }
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
 
@@ -175,17 +204,20 @@ fun RootNavigation(contenedor: AppContainer) {
                 viewModel = viewModel { ProtocolosViewModel(contenedor.protocolos) },
                 onBackClick = { navController.popBackStack() },
                 onProtocolClick = { numero -> navController.navigate(Routes.protocolo(numero)) },
-                onCrearProtocoloClick = { navController.navigate(Routes.CREAR_PROTOCOLO) }
+                onCrearProtocoloClick = { navController.navigate(Routes.CREAR_PROTOCOLO) },
+                puedeCrearProtocolos = rol?.puedeCrearProtocolos == true
             )
         }
 
 
         composable(Routes.CREAR_PROTOCOLO) {
-            CrearProtocolo(
-                viewModel = viewModel { CrearProtocoloViewModel(contenedor.protocolos, contenedor.pruebas) },
-                onBackClick = { navController.popBackStack() },
-                onProtocoloGuardado = { navController.popBackStack() }
-            )
+            ConPermiso({ it.puedeCrearProtocolos }, "crear protocolos") {
+                CrearProtocolo(
+                    viewModel = viewModel { CrearProtocoloViewModel(contenedor.protocolos, contenedor.pruebas) },
+                    onBackClick = { navController.popBackStack() },
+                    onProtocoloGuardado = { navController.popBackStack() }
+                )
+            }
         }
 
 
@@ -197,7 +229,9 @@ fun RootNavigation(contenedor: AppContainer) {
 
             DetalleProtocolo(
                 viewModel = viewModel {
-                    DetalleProtocoloViewModel(contenedor.protocolos, contenedor.pruebas, numeroProtocolo)
+                    DetalleProtocoloViewModel(contenedor.protocolos, contenedor.pruebas, numeroProtocolo) {
+                        contenedor.usuarios.rolActual(contenedor.sesion)
+                    }
                 },
                 onBackClick = { navController.popBackStack() },
                 onPruebaClick = { id -> navController.navigate(Routes.detallePrueba(id)) }
@@ -246,13 +280,22 @@ fun RootNavigation(contenedor: AppContainer) {
                     }
                 },
                 onEditarPerfilClick = { navController.navigate(Routes.EDITAR_PERFIL) },
-                onCambiarContrasenaClick = { navController.navigate(Routes.CAMBIAR_CONTRASENA) }
+                onCambiarContrasenaClick = { navController.navigate(Routes.CAMBIAR_CONTRASENA) },
+                onUsuariosClick = { navController.navigate(Routes.USUARIOS) }
+            )
+        }
+
+        composable(Routes.USUARIOS) {
+            // La propia pantalla muestra "Acceso restringido" si el rol no es administrador.
+            Usuarios(
+                viewModel = viewModel { UsuariosViewModel(contenedor.usuarios, contenedor.sesion) },
+                onBackClick = { navController.popBackStack() }
             )
         }
 
         composable(Routes.EDITAR_PERFIL) {
             EditarPerfil(
-                viewModel = viewModel { EditarPerfilViewModel(contenedor.usuarios, contenedor.sesion) },
+                viewModel = viewModel { EditarPerfilViewModel(contenedor.usuarios, contenedor.sesion, contenedor.eliminarArchivo) },
                 onVolverClick = { navController.popBackStack() },
                 onPerfilGuardado = { navController.popBackStack() }
             )

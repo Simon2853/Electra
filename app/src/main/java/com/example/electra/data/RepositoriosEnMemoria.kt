@@ -1,6 +1,8 @@
 package com.example.electra.data
 
 import com.example.electra.model.Avatar
+import com.example.electra.model.Rol
+import com.example.electra.model.UsuarioResumen
 import com.example.electra.model.CatalogoEquipos
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
@@ -68,13 +70,28 @@ class UsuariosRepositoryEnMemoria : UsuariosRepository {
 
     private val usuarios = mutableMapOf<String, Pair<String, String>>()
     private val avatares = mutableMapOf<String, Avatar>()
+    private val roles = mutableMapOf<String, Rol>()
 
-    override suspend fun registrar(nombre: String, usuario: String, contrasena: String): Boolean {
+    override suspend fun registrar(nombre: String, usuario: String, contrasena: String, rol: Rol): Boolean {
         val clave = usuario.trim()
         if (clave.isBlank() || clave in usuarios) return false
         usuarios[clave] = nombre.trim() to contrasena
+        roles[clave] = rol
         return true
     }
+
+    override suspend fun rol(usuario: String): Rol = roles[usuario.trim()] ?: Rol.POR_DEFECTO
+
+    override suspend fun actualizarRol(usuario: String, rol: Rol): Boolean {
+        val clave = usuario.trim()
+        if (clave !in usuarios) return false
+        roles[clave] = rol
+        return true
+    }
+
+    override suspend fun listar(): List<UsuarioResumen> =
+        usuarios.map { (usuario, datos) -> UsuarioResumen(usuario, datos.first, rol(usuario), avatar(usuario)) }
+            .sortedBy { it.nombre.lowercase() }
 
     override suspend fun validar(usuario: String, contrasena: String): Boolean =
         usuarios[usuario.trim()]?.second == contrasena

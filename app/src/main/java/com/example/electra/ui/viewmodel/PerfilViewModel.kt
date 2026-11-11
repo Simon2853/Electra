@@ -7,6 +7,7 @@ import com.example.electra.data.PruebasRepository
 import com.example.electra.data.SesionRepository
 import com.example.electra.data.UsuariosRepository
 import com.example.electra.model.Avatar
+import com.example.electra.model.Rol
 import com.example.electra.model.EstadosProtocolo
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ data class PerfilUiState(
     val nombre: String = "",
     val usuario: String = "",
     val avatar: Avatar = Avatar(),
+    val rol: Rol? = null,
     val pruebasGuardadas: Int = 0,
     val protocolosPendientes: Int = 0,
     val sesionCerrada: Boolean = false
@@ -37,10 +39,12 @@ class PerfilViewModel(
         viewModelScope.launch {
             val usuario = sesion.usuarioActual().orEmpty()
             val avatar = usuarios.avatar(usuario)
+            val rol = usuarios.rol(usuario)
             _uiState.update {
                 it.copy(
                     usuario = usuario,
                     avatar = avatar,
+                    rol = rol,
                     nombre = usuarios.nombre(usuario) ?: usuario.ifBlank { "Técnico Electra" },
                     pruebasGuardadas = pruebas.listarTodas().size,
                     protocolosPendientes = protocolos.listar().count { p -> p.estado == EstadosProtocolo.EN_TERRENO }

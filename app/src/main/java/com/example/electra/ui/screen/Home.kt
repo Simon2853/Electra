@@ -3,6 +3,7 @@ package com.example.electra.ui.screen
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.outlined.AssignmentTurnedIn
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.ManageAccounts
 import androidx.compose.material.icons.outlined.PendingActions
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -54,6 +56,8 @@ import com.example.electra.model.CatalogoEquipos
 import com.example.electra.model.OpcionesPrueba
 import com.example.electra.model.Prueba
 import com.example.electra.navigation.Routes
+import com.example.electra.ui.components.AvatarUsuario
+import com.example.electra.ui.components.EtiquetaRol
 import com.example.electra.ui.components.BarraSuperior
 import com.example.electra.ui.components.BotonCarga
 import com.example.electra.ui.theme.AzulOscuro
@@ -104,28 +108,68 @@ fun Home(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(
-                        text = "Hola, ${estado.nombre}",
-                        fontSize = 25.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = AzulOscuro
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AvatarUsuario(
+                        avatar = estado.avatar,
+                        nombre = estado.nombreCompleto,
+                        tamano = 56.dp,
+                        borde = 2.dp,
+                        modifier = Modifier.clickable { onNavigate(Routes.PERFIL) }
                     )
-                    Text(
-                        text = "Revisa el estado de tus pruebas y equipos.",
-                        fontSize = 14.sp,
-                        color = TextoSecundario
-                    )
+                    Spacer(Modifier.width(14.dp))
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = "Hola, ${estado.nombre}",
+                            fontSize = 25.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AzulOscuro
+                        )
+                        estado.rol?.let { EtiquetaRol(it) }
+                        Text(
+                            text = when {
+                                estado.rol?.puedeFormalizar == true && estado.rol?.puedeRegistrarPruebas == false ->
+                                    "Revisa y formaliza los protocolos registrados en terreno."
+                                else -> "Revisa el estado de tus pruebas y equipos."
+                            },
+                            fontSize = 14.sp,
+                            color = TextoSecundario
+                        )
+                    }
                 }
             }
 
-            item {
-                BotonCarga(
-                    texto = "Registrar nueva prueba",
-                    icono = Icons.Outlined.Add,
-                    cargando = false,
-                    onClick = { onNavigate(Routes.registrarPrueba(equipoPorDefecto)) }
-                )
+            // Acción principal según el rol (mientras el rol carga no se muestra ninguna).
+            val rol = estado.rol
+            if (rol?.puedeFormalizar == true && estado.protocolosPendientes > 0) {
+                item {
+                    BotonCarga(
+                        texto = "Formalizar protocolos (${estado.protocolosPendientes})",
+                        icono = Icons.Outlined.PendingActions,
+                        cargando = false,
+                        onClick = { onNavigate(Routes.PROTOCOLOS) },
+                        color = VerdeExito
+                    )
+                }
+            }
+            if (rol?.puedeRegistrarPruebas == true) {
+                item {
+                    BotonCarga(
+                        texto = "Registrar nueva prueba",
+                        icono = Icons.Outlined.Add,
+                        cargando = false,
+                        onClick = { onNavigate(Routes.registrarPrueba(equipoPorDefecto)) }
+                    )
+                }
+            }
+            if (rol?.puedeGestionarUsuarios == true) {
+                item {
+                    QuickAction(
+                        modifier = Modifier.fillMaxWidth(),
+                        title = "Gestionar usuarios y roles",
+                        icon = Icons.Outlined.ManageAccounts,
+                        onClick = { onNavigate(Routes.USUARIOS) }
+                    )
+                }
             }
 
             item { SectionTitle(text = "Resumen") }

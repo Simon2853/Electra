@@ -1,12 +1,29 @@
 package com.example.electra.ui.screen
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -34,12 +51,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.electra.data.SesionEnMemoria
 import com.example.electra.data.UsuariosRepositoryEnMemoria
+import com.example.electra.device.ArchivosEvidencia
 import com.example.electra.ui.components.Avatares
-import com.example.electra.ui.components.AvatarIcono
+import com.example.electra.ui.components.AvatarUsuario
 import com.example.electra.ui.components.BarraSuperior
 import com.example.electra.ui.components.SelectorColor
 import com.example.electra.model.Avatar
-import com.example.electra.ui.components.SelectorIconoAvatar
+import com.example.electra.ui.components.SelectorColorAvatar
+import com.example.electra.ui.theme.RojoError
 import com.example.electra.ui.components.BotonCarga
 import com.example.electra.ui.components.CampoValidado
 import com.example.electra.ui.components.TituloSeccion
@@ -57,6 +76,35 @@ fun EditarPerfil(
     onPerfilGuardado: () -> Unit = {}
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // Misma mecánica que la foto de evidencia en RegistrarPrueba: TakePicture + FileProvider.
+    var uriPendiente by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val tomarFoto = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { ok ->
+        val uri = uriPendiente
+        if (ok && uri != null) viewModel.onFotoElegida(uri)
+        else if (uri != null) ArchivosEvidencia.eliminar(context, uri)
+        uriPendiente = null
+    }
+
+    val permisoCamara = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { concedido ->
+        if (concedido) {
+            val uri = ArchivosEvidencia.nuevaFotoPerfil(context)
+            uriPendiente = uri.toString()
+            tomarFoto.launch(uri)
+        } else {
+            viewModel.onErrorFoto("Sin permiso de cámara. Puedes elegir una foto de la galería.")
+        }
+    }
+
+    // El selector de fotos del sistema no necesita permisos de almacenamiento.
+    val elegirGaleria = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val copia = ArchivosEvidencia.copiarFotoPerfil(context, uri)
+        if (copia != null) viewModel.onFotoElegida(copia.toString())
+        else viewModel.onErrorFoto("No se pudo leer la imagen seleccionada.")
+    }
 
     LaunchedEffect(estado.guardado) {
         if (estado.guardado) {
@@ -102,7 +150,7 @@ fun EditarPerfil(
                             .padding(vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        AvatarIcono(avatar = estado.avatar)
+                        AvatarUsuario(avatar = estado.avatar, nombre = estado.nombre.ifBlank { estado.usuario })
                         Text(
                             text = estado.nombre.ifBlank { "Tu nombre" },
                             fontSize = 16.sp,
@@ -112,16 +160,45 @@ fun EditarPerfil(
                         )
                     }
 
-                    Text(text = "Ícono", fontSize = 13.sp, color = TextoSecundario)
-                    SelectorIconoAvatar(
-                        seleccionado = estado.avatar.icono,
-                        color = Avatares.color(estado.avatar.color),
-                        onSeleccionar = viewModel::onIconoChange
-                    )
+                    Text(text = "Foto de perfil", fontSize = 13.sp, color = TextoSecundario)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { permisoCamara.launch(Manifest.permission.CAMERA) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Outlined.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Tomar foto")
+                        }
+                        OutlinedButton(
+                            onClick = {
+                                elegirGaleria.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Outlined.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Galería")
+                        }
+                    }
+                    if (estado.avatar.foto != null) {
+                        TextButton(onClick = viewModel::onQuitarFoto) {
+                            Icon(Icons.Outlined.Delete, contentDescription = null, tint = RojoError, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Quitar foto y usar iniciales", color = RojoError)
+                        }
+                    }
+                    estado.errorFoto?.let { Text(it, fontSize = 12.sp, color = RojoError) }
 
-                    SelectorColor(
-                        titulo = "Color del avatar",
-                        seleccionado = Avatares.colorPaleta(estado.avatar.color),
+                    Text(
+                        text = if (estado.avatar.foto != null) "Color de las iniciales (si quitas la foto)" else "Color de las iniciales",
+                        fontSize = 13.sp,
+                        color = TextoSecundario
+                    )
+                    SelectorColorAvatar(
+                        seleccionado = estado.avatar.color,
                         onSeleccionar = viewModel::onColorChange
                     )
 

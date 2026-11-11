@@ -18,7 +18,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.automirrored.outlined.Assignment
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.ManageAccounts
+import com.example.electra.ui.components.EtiquetaRol
+import com.example.electra.ui.components.icono
+import com.example.electra.ui.theme.VerdeExito
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LockReset
 import androidx.compose.material.icons.outlined.PendingActions
@@ -49,7 +55,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.electra.ui.components.Avatares
-import com.example.electra.ui.components.AvatarIcono
+import com.example.electra.ui.components.AvatarUsuario
 import com.example.electra.ui.components.BarraSuperior
 import com.example.electra.ui.components.BotonCarga
 import com.example.electra.ui.theme.AzulOscuro
@@ -65,7 +71,8 @@ fun Perfil(
     onBackClick: () -> Unit = {},
     onSesionCerrada: () -> Unit = {},
     onEditarPerfilClick: () -> Unit = {},
-    onCambiarContrasenaClick: () -> Unit = {}
+    onCambiarContrasenaClick: () -> Unit = {},
+    onUsuariosClick: () -> Unit = {}
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmarSalida by rememberSaveable { mutableStateOf(false) }
@@ -95,14 +102,49 @@ fun Perfil(
             val fondo = Avatares.fondo(estado.avatar.fondo)
             Tarjeta(colorFondo = fondo) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    AvatarIcono(avatar = estado.avatar, tamano = 64.dp)
+                    AvatarUsuario(avatar = estado.avatar, nombre = estado.nombre, tamano = 64.dp, borde = 3.dp)
                     Spacer(Modifier.width(16.dp))
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(estado.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Avatares.contraste(fondo))
+                        if (estado.usuario.isNotBlank()) {
+                            Text(
+                                text = "@${estado.usuario}",
+                                fontSize = 14.sp,
+                                color = Avatares.contrasteSecundario(fondo)
+                            )
+                        }
+                        estado.rol?.let { EtiquetaRol(it) }
+                    }
+                }
+            }
+
+            estado.rol?.let { rol ->
+                Tarjeta {
+                    Text("Rol y permisos", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    FilaPerfil(rol.icono, "Rol", rol.nombre)
+                    Text(rol.descripcion, fontSize = 13.sp, color = TextoSecundario)
+                    HorizontalDivider()
+                    rol.permisos.forEach { (permiso, permitido) ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = if (permitido) Icons.Filled.CheckCircle else Icons.Outlined.Block,
+                                contentDescription = if (permitido) "Permitido" else "No permitido",
+                                tint = if (permitido) VerdeExito else TextoSecundario,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = permiso,
+                                fontSize = 14.sp,
+                                color = if (permitido) AzulOscuro else TextoSecundario
+                            )
+                        }
+                    }
+                    if (!rol.puedeGestionarUsuarios) {
                         Text(
-                            text = if (estado.usuario.isNotBlank()) "@${estado.usuario}" else "Técnico de pruebas eléctricas",
-                            fontSize = 14.sp,
-                            color = Avatares.contrasteSecundario(fondo)
+                            text = "Para cambiar tu rol, pídeselo a un administrador.",
+                            fontSize = 12.sp,
+                            color = TextoSecundario
                         )
                     }
                 }
@@ -121,9 +163,16 @@ fun Perfil(
 
             Tarjeta {
                 Text("Cuenta", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
-                AccionPerfil(Icons.Outlined.Edit, "Editar perfil", "Nombre, avatar y fondo", onEditarPerfilClick)
+                AccionPerfil(Icons.Outlined.Edit, "Editar perfil", "Nombre, foto, color y fondo", onEditarPerfilClick)
                 HorizontalDivider()
                 AccionPerfil(Icons.Outlined.LockReset, "Cambiar contraseña", "Requiere tu contraseña actual", onCambiarContrasenaClick)
+            }
+
+            if (estado.rol?.puedeGestionarUsuarios == true) {
+                Tarjeta {
+                    Text("Administración", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                    AccionPerfil(Icons.Outlined.ManageAccounts, "Usuarios y roles", "Ver cuentas y cambiar sus roles", onUsuariosClick)
+                }
             }
 
             BotonCarga(

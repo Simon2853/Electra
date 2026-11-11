@@ -99,6 +99,7 @@ fun DetalleProtocolo(
                 Vibracion.exito(context)
                 "Protocolo formalizado"
             }
+            MensajeProtocolo.SIN_PERMISO -> "Tu rol no permite formalizar protocolos"
             null -> return@LaunchedEffect
         }
         Toast.makeText(context, texto, Toast.LENGTH_SHORT).show()
@@ -198,8 +199,10 @@ fun DetalleProtocolo(
                         Spacer(Modifier.width(8.dp))
                         Text("Observaciones", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                     }
-                    IconButton(onClick = viewModel::abrirEdicion) {
-                        Icon(Icons.Filled.Edit, contentDescription = "Editar observación", tint = AzulPrincipal)
+                    if (estado.puedeEditarObservaciones) {
+                        IconButton(onClick = viewModel::abrirEdicion) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Editar observación", tint = AzulPrincipal)
+                        }
                     }
                 }
                 Text(
@@ -241,7 +244,7 @@ fun DetalleProtocolo(
             }
 
             AnimatedVisibility(
-                visible = !formalizado,
+                visible = !formalizado && estado.puedeFormalizar,
                 exit = shrinkVertically() + fadeOut()
             ) {
                 BotonCarga(
@@ -250,6 +253,15 @@ fun DetalleProtocolo(
                     cargando = false,
                     onClick = viewModel::formalizar,
                     color = VerdeExito
+                )
+            }
+
+            // Técnico de terreno: ve el estado pero la formalización la hace un supervisor/ingeniero.
+            if (!formalizado && estado.rol != null && !estado.puedeFormalizar) {
+                Text(
+                    text = "Pendiente de revisión: un supervisor o ingeniero debe formalizar este protocolo.",
+                    fontSize = 13.sp,
+                    color = TextoSecundario
                 )
             }
 

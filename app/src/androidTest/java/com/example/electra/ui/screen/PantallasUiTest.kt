@@ -15,6 +15,7 @@ import com.example.electra.data.ProtocolosRepositoryEnMemoria
 import com.example.electra.data.SesionEnMemoria
 import com.example.electra.data.PruebasRepositoryEnMemoria
 import com.example.electra.data.UsuariosRepositoryEnMemoria
+import com.example.electra.model.Rol
 import com.example.electra.device.ResultadoUbicacion
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
@@ -306,7 +307,7 @@ class PantallasUiTest {
     @Test
     fun detalleProtocolo_formalizar() {
         val repo = repoProtocolos()
-        val vm = DetalleProtocoloViewModel(repo, PruebasRepositoryEnMemoria(), "000124")
+        val vm = DetalleProtocoloViewModel(repo, PruebasRepositoryEnMemoria(), "000124") { Rol.SUPERVISOR }
         compose.setContent { DetalleProtocolo(viewModel = vm) }
 
         compose.esperarTexto("Registrado en terreno")
@@ -319,8 +320,17 @@ class PantallasUiTest {
 
     @Test
     fun detalleProtocolo_inexistenteMuestraMensaje() {
-        val vm = DetalleProtocoloViewModel(repoProtocolos(), PruebasRepositoryEnMemoria(), "999999")
+        val vm = DetalleProtocoloViewModel(repoProtocolos(), PruebasRepositoryEnMemoria(), "999999") { Rol.SUPERVISOR }
         compose.setContent { DetalleProtocolo(viewModel = vm) }
         compose.esperarTexto("No se encontró el protocolo.")
+    }
+
+    @Test
+    fun detalleProtocolo_tecnicoNoVeBotonFormalizar() {
+        val vm = DetalleProtocoloViewModel(repoProtocolos(), PruebasRepositoryEnMemoria(), "000124") { Rol.TECNICO }
+        compose.setContent { DetalleProtocolo(viewModel = vm) }
+
+        compose.esperarTexto("Pendiente de revisión: un supervisor o ingeniero debe formalizar este protocolo.")
+        compose.onNodeWithText("Formalizar protocolo").assertDoesNotExist()
     }
 }

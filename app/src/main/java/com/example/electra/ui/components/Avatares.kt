@@ -1,6 +1,5 @@
 package com.example.electra.ui.components
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -34,6 +34,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -41,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.electra.R
+import coil.compose.AsyncImage
 import com.example.electra.model.Avatar
 import com.example.electra.ui.theme.AzulOscuro
 import com.example.electra.ui.theme.Dimens
@@ -49,18 +54,8 @@ import com.example.electra.ui.theme.TextoSecundario
 
 data class ColorPaleta(val clave: String, val nombre: String, val color: Color)
 
-// Para sumar un ícono: copiarlo a res/drawable y agregar una línea en "iconos".
 // Para sumar un color: agregar una línea en "paleta" con una clave nueva (no cambiar las existentes).
 object Avatares {
-    val iconos: List<Pair<String, Int>> = listOf(
-        "persona" to R.drawable.ic_persona,
-        "seguir" to R.drawable.ic_seguir,
-        "correo" to R.drawable.ic_correo,
-        "ubicacion" to R.drawable.ic_ubicacion,
-        "candado" to R.drawable.ic_candado,
-        "check" to R.drawable.ic_check
-    )
-
     val paleta: List<ColorPaleta> = listOf(
         ColorPaleta("blanco", "Blanco", Color(0xFFFFFFFF)),
         ColorPaleta("hielo", "Hielo", Color(0xFFEAF3FA)),
@@ -87,8 +82,9 @@ object Avatares {
         ColorPaleta("negro", "Negro", Color(0xFF111111))
     )
 
-    @DrawableRes
-    fun icono(clave: String): Int = iconos.firstOrNull { it.first == clave }?.second ?: iconos.first().second
+    // Paleta corta para el círculo de iniciales: tonos de la marca, todos con buen contraste para texto blanco.
+    val paletaMarca: List<ColorPaleta> = listOf("azul", "marino", "indigo", "turquesa", "verde", "naranja", "rojo", "grafito")
+        .map { clave -> paleta.first { it.clave == clave } }
 
     fun colorPaleta(clave: String, porDefecto: String = Avatar.COLOR_POR_DEFECTO): ColorPaleta =
         paleta.firstOrNull { it.clave == clave } ?: paleta.first { it.clave == porDefecto }
@@ -104,58 +100,71 @@ object Avatares {
         if (fondo.luminance() > 0.5f) TextoSecundario else Color.White.copy(alpha = 0.8f)
 }
 
+/**
+ * Avatar del técnico: su foto de perfil si tiene una; si no (o si la foto ya no se puede leer),
+ * un círculo del color elegido con sus iniciales.
+ */
 @Composable
-fun AvatarIcono(
+fun AvatarUsuario(
     avatar: Avatar,
+    nombre: String,
     modifier: Modifier = Modifier,
-    tamano: Dp = Dimens.tamanoAvatar
+    tamano: Dp = Dimens.tamanoAvatar,
+    borde: Dp = Dimens.bordeAvatar
 ) {
     val fondo = Avatares.color(avatar.color)
+    var fotoFallida by remember(avatar.foto) { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .size(tamano)
             .shadow(elevation = 4.dp, shape = CircleShape)
             .clip(CircleShape)
             .background(fondo)
-            .border(Dimens.bordeAvatar, Color.White, CircleShape),
+            .border(borde, Color.White, CircleShape),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            painter = painterResource(Avatares.icono(avatar.icono)),
-            contentDescription = "Avatar",
-            tint = Avatares.contraste(fondo),
-            modifier = Modifier.size(tamano * 0.55f)
-        )
+        if (avatar.foto != null && !fotoFallida) {
+            AsyncImage(
+                model = avatar.foto,
+                contentDescription = "Foto de perfil",
+                contentScale = ContentScale.Crop,
+                onError = { fotoFallida = true },
+                modifier = Modifier.matchParentSize()
+            )
+        } else {
+            val tamanoTexto = with(LocalDensity.current) { (tamano * 0.38f).toSp() }
+            Text(
+                text = Avatar.iniciales(nombre),
+                color = Avatares.contraste(fondo),
+                fontSize = tamanoTexto,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                modifier = Modifier.semantics { contentDescription = "Avatar con iniciales" }
+            )
+        }
     }
 }
 
+/** Fila con la paleta corta de la marca para el círculo de iniciales. */
 @Composable
-fun SelectorIconoAvatar(
+fun SelectorColorAvatar(
     seleccionado: String,
-    color: Color,
-    onSeleccionar: (String) -> Unit
+    onSeleccionar: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Avatares.iconos.forEach { (clave, icono) ->
-            val activo = clave == seleccionado
+        Avatares.paletaMarca.forEach { opcion ->
             Box(
                 modifier = Modifier
-                    .size(48.dp)
                     .clip(CircleShape)
-                    .background(if (activo) color else color.copy(alpha = 0.12f))
-                    .border(1.dp, if (activo) Color.Transparent else color.copy(alpha = 0.3f), CircleShape)
-                    .clickable { onSeleccionar(clave) }
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center
+                    .clickable { onSeleccionar(opcion.clave) }
+                    .semantics { contentDescription = "Color ${opcion.nombre}" }
             ) {
-                Icon(
-                    painter = painterResource(icono),
-                    contentDescription = "Ícono $clave",
-                    tint = if (activo) Avatares.contraste(color) else AzulOscuro
-                )
+                MuestraColor(opcion.color, activo = opcion.clave == seleccionado, tamano = 40.dp)
             }
         }
     }
@@ -264,9 +273,12 @@ private fun MuestraColor(color: Color, activo: Boolean, tamano: Dp) {
 
 @Preview(showBackground = true)
 @Composable
-private fun AvatarIconoPreview() {
+private fun AvatarUsuarioPreview() {
     ElectraTheme {
-        AvatarIcono(avatar = Avatar(icono = "ubicacion", color = "verde"), modifier = Modifier.padding(16.dp))
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            AvatarUsuario(avatar = Avatar(color = "verde"), nombre = "Ana Torres")
+            SelectorColorAvatar(seleccionado = "verde", onSeleccionar = {})
+        }
     }
 }
 

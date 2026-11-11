@@ -76,7 +76,8 @@ fun Protocolos(
     viewModel: ProtocolosViewModel,
     onBackClick: () -> Unit = {},
     onProtocolClick: (String) -> Unit = {},
-    onCrearProtocoloClick: () -> Unit = {}
+    onCrearProtocoloClick: () -> Unit = {},
+    puedeCrearProtocolos: Boolean = true
 ) {
     val protocolosBd by viewModel.protocolos.collectAsStateWithLifecycle()
 
@@ -104,15 +105,17 @@ fun Protocolos(
 
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = onCrearProtocoloClick,
-                containerColor = MainBlue,
-                contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Nuevo Protocolo"
-                )
+            if (puedeCrearProtocolos) {
+                FloatingActionButton(
+                    onClick = onCrearProtocoloClick,
+                    containerColor = MainBlue,
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Nuevo Protocolo"
+                    )
+                }
             }
         }
     ) { innerPadding ->

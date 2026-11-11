@@ -3,6 +3,7 @@ package com.example.electra.ui.viewmodel
 import com.example.electra.data.ProtocolosRepositoryEnMemoria
 import com.example.electra.data.PruebasRepositoryEnMemoria
 import com.example.electra.model.CatalogoEquipos
+import com.example.electra.model.Rol
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -144,8 +145,11 @@ class ProtocolosViewModelTest {
         assertNull(vm.uiState.value.errorNumero)
     }
 
-    private fun detalleVm(numero: String, pruebas: PruebasRepositoryEnMemoria = PruebasRepositoryEnMemoria()) =
-        DetalleProtocoloViewModel(repoConSemilla(), pruebas, numero)
+    private fun detalleVm(
+        numero: String,
+        pruebas: PruebasRepositoryEnMemoria = PruebasRepositoryEnMemoria(),
+        rol: Rol = Rol.SUPERVISOR
+    ) = DetalleProtocoloViewModel(repoConSemilla(), pruebas, numero) { rol }
 
     @Test
     fun detalle_cargaElProtocoloYLasPruebasDelEquipo() {
@@ -180,6 +184,29 @@ class ProtocolosViewModelTest {
         assertEquals("Formalizado", vm.uiState.value.protocolo?.estado)
         assertTrue(vm.uiState.value.formalizado)
         assertEquals(MensajeProtocolo.FORMALIZADO, vm.uiState.value.mensaje)
+    }
+
+    @Test
+    fun detalle_tecnicoNoPuedeFormalizar() {
+        val vm = detalleVm("000124", rol = Rol.TECNICO)
+        vm.cargar()
+        assertFalse(vm.uiState.value.puedeFormalizar)
+
+        vm.formalizar()
+
+        assertEquals("Registrado en terreno", vm.uiState.value.protocolo?.estado)
+        assertFalse(vm.uiState.value.formalizado)
+        assertEquals(MensajeProtocolo.SIN_PERMISO, vm.uiState.value.mensaje)
+    }
+
+    @Test
+    fun detalle_administradorPuedeFormalizar() {
+        val vm = detalleVm("000124", rol = Rol.ADMINISTRADOR)
+        vm.cargar()
+
+        vm.formalizar()
+
+        assertTrue(vm.uiState.value.formalizado)
     }
 
     @Test

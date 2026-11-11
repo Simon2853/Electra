@@ -57,6 +57,7 @@ import com.example.electra.data.UsuariosRepositoryEnMemoria
 import com.example.electra.ui.components.BarraSuperior
 import com.example.electra.ui.components.BotonCarga
 import com.example.electra.ui.components.CampoValidado
+import com.example.electra.ui.components.SelectorRol
 import com.example.electra.ui.components.TituloSeccion
 import com.example.electra.ui.components.sacudir
 import com.example.electra.ui.theme.AzulPrincipal
@@ -90,7 +91,7 @@ fun Registro(
             .fillMaxSize()
             .background(Fondo)
     ) {
-        BarraSuperior(titulo = "Crear cuenta", subtitulo = "Registro de técnico", onVolver = onVolverClick)
+        BarraSuperior(titulo = "Crear cuenta", subtitulo = "Registro de usuario", onVolver = onVolverClick)
 
         Column(
             modifier = Modifier
@@ -134,6 +135,10 @@ fun Registro(
                         placeholder = "Ej: jperez",
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                     )
+
+                    TituloSeccion("Rol en la empresa", modifier = Modifier.padding(top = 4.dp))
+
+                    SelectorRol(seleccionado = estado.rol, onSeleccionar = viewModel::onRolChange)
 
                     TituloSeccion("Seguridad", modifier = Modifier.padding(top = 4.dp))
 

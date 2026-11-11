@@ -62,6 +62,7 @@ fun DetalleEquipo(
     codigoEquipo: String,
     onVolverClick: () -> Unit = {},
     onNuevaPruebaClick: () -> Unit = {},
+    puedeRegistrarPruebas: Boolean = true,
     onHistorialClick: () -> Unit = {},
     onProtocolosClick: () -> Unit = {}
 ) {
@@ -135,12 +136,14 @@ fun DetalleEquipo(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Acciones", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
 
-                    BotonCarga(
-                        texto = "Registrar nueva prueba",
-                        icono = Icons.Outlined.Add,
-                        cargando = false,
-                        onClick = onNuevaPruebaClick
-                    )
+                    if (puedeRegistrarPruebas) {
+                        BotonCarga(
+                            texto = "Registrar nueva prueba",
+                            icono = Icons.Outlined.Add,
+                            cargando = false,
+                            onClick = onNuevaPruebaClick
+                        )
+                    }
                     BotonSecundario("Ver historial de pruebas", Icons.Outlined.History, onHistorialClick)
                     BotonSecundario("Ver protocolos", Icons.Outlined.AssignmentTurnedIn, onProtocolosClick)
                 }

@@ -8,6 +8,7 @@ import com.example.electra.model.EstadosProtocolo
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
 import com.example.electra.model.Respaldo
+import com.example.electra.model.Rol
 import com.example.electra.validation.Validaciones
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class MensajeProtocolo { OBSERVACION_ACTUALIZADA, ERROR_ACTUALIZAR, FORMALIZADO }
+enum class MensajeProtocolo { OBSERVACION_ACTUALIZADA, ERROR_ACTUALIZAR, FORMALIZADO, SIN_PERMISO }
 
 data class DetalleProtocoloUiState(
     val cargando: Boolean = true,
@@ -23,16 +24,21 @@ data class DetalleProtocoloUiState(
     val pruebas: List<Prueba> = emptyList(),
     val editandoObservacion: Boolean = false,
     val textoObservacion: String = "",
-    val mensaje: MensajeProtocolo? = null
+    val mensaje: MensajeProtocolo? = null,
+    val rol: Rol? = null
 ) {
     val formalizado get() = protocolo?.estado.equals(EstadosProtocolo.FORMALIZADO, ignoreCase = true)
     val errorObservacion get() = Validaciones.observaciones(textoObservacion)
+    val puedeFormalizar get() = rol?.puedeFormalizar == true
+    val puedeEditarObservaciones get() = rol?.puedeEditarObservaciones == true
 }
 
 class DetalleProtocoloViewModel(
     private val repositorio: ProtocolosRepository,
     private val pruebas: PruebasRepository,
-    private val numeroProtocolo: String
+    private val numeroProtocolo: String,
+    /** Rol de quien tiene la sesión; se consulta en cada carga y antes de formalizar. */
+    private val obtenerRol: suspend () -> Rol
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DetalleProtocoloUiState())
@@ -45,6 +51,10 @@ class DetalleProtocoloViewModel(
     fun formalizar() {
         val protocolo = _uiState.value.protocolo ?: return
         viewModelScope.launch {
+            if (!obtenerRol().puedeFormalizar) {
+                _uiState.update { it.copy(mensaje = MensajeProtocolo.SIN_PERMISO) }
+                return@launch
+            }
             repositorio.cambiarEstado(protocolo.numero, EstadosProtocolo.FORMALIZADO)
             recargar()
             _uiState.update { it.copy(mensaje = MensajeProtocolo.FORMALIZADO) }
@@ -90,8 +100,9 @@ class DetalleProtocoloViewModel(
     private suspend fun recargar() {
         val protocolo = repositorio.buscar(numeroProtocolo)
         val delEquipo = protocolo?.let { pruebas.listarPorEquipo(it.equipo).take(LIMITE_RECIENTES_POR_EQUIPO) }
+        val rol = obtenerRol()
         _uiState.update {
-            it.copy(cargando = false, protocolo = protocolo, pruebas = delEquipo.orEmpty())
+            it.copy(cargando = false, protocolo = protocolo, pruebas = delEquipo.orEmpty(), rol = rol)
         }
     }
 }

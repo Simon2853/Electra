@@ -31,6 +31,7 @@ object Routes {
     const val PERFIL = "perfil"
     const val EDITAR_PERFIL = "editar_perfil"
     const val CAMBIAR_CONTRASENA = "cambiar_contrasena"
+    const val USUARIOS = "usuarios"
 
     fun detalleEquipo(codigo: String): String = "$DETALLE_EQUIPO/$codigo"
 

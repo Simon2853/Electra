@@ -231,19 +231,43 @@ class AutenticacionViewModelTest {
     }
 
     @Test
-    fun editarPerfil_guardaIconoYColorDelAvatar() = runTest {
+    fun editarPerfil_guardaColorFondoYFotoDelAvatar() = runTest {
         usuarios.registrar("Ana Test", "anatest", "Segura#2026")
         sesion.iniciar("anatest")
         val vm = EditarPerfilViewModel(usuarios, sesion)
         assertEquals(Avatar(), vm.uiState.value.avatar)
 
-        vm.onIconoChange("ubicacion")
         vm.onColorChange("verde")
         vm.onFondoChange("lavanda")
+        vm.onFotoElegida("content://foto/1.jpg")
         vm.guardar()
 
         assertTrue(vm.uiState.value.guardado)
-        assertEquals(Avatar(icono = "ubicacion", color = "verde", fondo = "lavanda"), usuarios.avatar("anatest"))
+        assertEquals(Avatar(color = "verde", fondo = "lavanda", foto = "content://foto/1.jpg"), usuarios.avatar("anatest"))
+    }
+
+    @Test
+    fun editarPerfil_borraLaFotoReemplazadaYLaTemporalDescartada() = runTest {
+        usuarios.registrar("Ana Test", "anatest", "Segura#2026")
+        usuarios.actualizarAvatar("anatest", Avatar(foto = "content://foto/vieja.jpg"))
+        sesion.iniciar("anatest")
+        val borradas = mutableListOf<String>()
+        val vm = EditarPerfilViewModel(usuarios, sesion) { borradas += it }
+
+        vm.onFotoElegida("content://foto/a.jpg")
+        vm.onFotoElegida("content://foto/b.jpg")
+        assertEquals(listOf("content://foto/a.jpg"), borradas)
+
+        vm.guardar()
+        assertEquals(listOf("content://foto/a.jpg", "content://foto/vieja.jpg"), borradas)
+        assertEquals("content://foto/b.jpg", usuarios.avatar("anatest").foto)
+    }
+
+    @Test
+    fun avatar_inicialesDelNombre() {
+        assertEquals("AT", Avatar.iniciales("Ana María Torres"))
+        assertEquals("A", Avatar.iniciales("  ana "))
+        assertEquals("?", Avatar.iniciales(""))
     }
 
     @Test

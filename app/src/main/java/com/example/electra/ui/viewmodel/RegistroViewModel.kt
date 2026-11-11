@@ -3,6 +3,7 @@ package com.example.electra.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.electra.data.UsuariosRepository
+import com.example.electra.model.Rol
 import com.example.electra.validation.Validaciones
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,6 +16,7 @@ data class RegistroUiState(
     val usuario: String = "",
     val contrasena: String = "",
     val confirmar: String = "",
+    val rol: Rol = Rol.POR_DEFECTO,
     val mostrarErrores: Boolean = false,
     val usuarioOcupado: Boolean = false,
     val registrando: Boolean = false,
@@ -57,6 +59,7 @@ class RegistroViewModel(
     fun onUsuarioChange(valor: String) = _uiState.update { it.copy(usuario = valor, usuarioOcupado = false) }
     fun onContrasenaChange(valor: String) = _uiState.update { it.copy(contrasena = valor) }
     fun onConfirmarChange(valor: String) = _uiState.update { it.copy(confirmar = valor) }
+    fun onRolChange(rol: Rol) = _uiState.update { it.copy(rol = rol) }
 
     fun registrar() {
         val estado = _uiState.value.copy(mostrarErrores = true)
@@ -69,7 +72,7 @@ class RegistroViewModel(
 
         _uiState.value = estado.copy(registrando = true)
         viewModelScope.launch {
-            val ok = usuarios.registrar(estado.nombre.trim(), estado.usuario.trim(), estado.contrasena)
+            val ok = usuarios.registrar(estado.nombre.trim(), estado.usuario.trim(), estado.contrasena, estado.rol)
             _uiState.update {
                 it.copy(
                     registrando = false,

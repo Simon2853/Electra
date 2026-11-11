@@ -110,8 +110,12 @@ class UsuariosLocalTest {
         UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
         assertEquals(Avatar(), UsuariosLocal.avatar(contexto, "anatest"))
 
-        assertTrue(UsuariosLocal.actualizarAvatar(contexto, "anatest", Avatar("correo", "rojo", "crema")))
-        assertEquals(Avatar("correo", "rojo", "crema"), UsuariosLocal.avatar(contexto, "anatest"))
+        val elegido = Avatar(color = "rojo", fondo = "crema", foto = "content://foto/perfil.jpg")
+        assertTrue(UsuariosLocal.actualizarAvatar(contexto, "anatest", elegido))
+        assertEquals(elegido, UsuariosLocal.avatar(contexto, "anatest"))
+
+        assertTrue(UsuariosLocal.actualizarAvatar(contexto, "anatest", elegido.copy(foto = null)))
+        assertEquals(null, UsuariosLocal.avatar(contexto, "anatest").foto)
         assertFalse(UsuariosLocal.actualizarAvatar(contexto, "nadie", Avatar()))
     }
 
