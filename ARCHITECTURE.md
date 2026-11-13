@@ -140,16 +140,18 @@ El número de protocolo se pasa **sin `#`** en la ruta (el `#` rompería la URI)
 
 ### 3.3 Capa de datos (`data`)
 
-**`PruebaDbHelper`** (`electra.db`, versión 2):
+**`PruebaDbHelper`** (`electra.db`, versión 5):
 
 | Tabla | Columnas | Notas |
 |---|---|---|
-| `pruebas` | `id` PK autoinc, `equipo`, `tipo_prueba`, `fecha`, `hora`, `medicion`, `unidad`, `resultado`, `observaciones` | todo `TEXT NOT NULL` |
-| `protocolos` | `id` PK autoinc, `numero` UNIQUE, `equipo`, `fecha`, `estado`, `responsable`, `observaciones` | estado: "Registrado en terreno" / "Formalizado"; 4 filas semilla |
+| `pruebas` | `id` PK autoinc, `equipo`, `tipo_prueba`, `fecha`, `hora`, `medicion`, `unidad`, `resultado`, `observaciones`, `foto_uri`, `latitud`, `longitud`, `creado_por`, `creado_en` | `creado_por` = login de quien la registró; `creado_en` = epoch ms |
+| `protocolos` | `id` PK autoinc, `numero` UNIQUE, `equipo`, `fecha`, `estado`, `responsable`, `observaciones`, `creado_por`, `creado_en` | estado: "Registrado en terreno" / "Formalizado"; sin filas semilla |
 
 - Fechas y horas se guardan como texto (`dd/MM/yyyy`, `HH:mm`); las mediciones también son texto.
 - No hay relación por clave foránea entre equipos, pruebas y protocolos: se vinculan por el código del equipo como string.
-- `onUpgrade` solo contempla la migración 1 → 2 (crea `protocolos`).
+- `onUpgrade`: 1 → 2 crea `protocolos`; 2 → 3 agrega foto y GPS; 3 → 4 agrega `creado_por` y borra los 4 protocolos de ejemplo que se insertaban antes; 4 → 5 agrega `creado_en`.
+- **Registros por usuario** (`data/Alcance.kt`): los repositorios consultan en cada operación el usuario de la sesión. Al insertar guardan `creado_por` y `creado_en`; al consultar, el técnico solo ve lo suyo y los roles con `Rol.veRegistrosDeTodos` (supervisor y administrador) ven lo de todos, pero **solo lo registrado desde que se creó su cuenta** (`creada_en_<usuario>` en las preferencias de usuarios). Así toda cuenta nueva parte sin pruebas ni protocolos, sea cual sea su rol. No se puede ver ni modificar un registro fuera del alcance por número o id. El número correlativo de protocolo se calcula sobre todos los usuarios porque es único.
+- Cuentas creadas antes de guardar `creada_en` no tienen ese límite y siguen viendo todo. Los registros anteriores a la v4/v5 (sin `creado_por`/`creado_en`) solo los ven esas cuentas antiguas de supervisor o administrador.
 - Los errores de inserción se capturan y se devuelven como `-1L`.
 
 **`UsuariosLocal`**: usuarios en `SharedPreferences` `electra_usuarios`

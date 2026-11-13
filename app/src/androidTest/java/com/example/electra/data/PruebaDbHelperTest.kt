@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.electra.contextoDePrueba
 import com.example.electra.limpiarAlmacenamiento
+import com.example.electra.model.CatalogoEquipos
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
 import org.junit.After
@@ -99,10 +100,53 @@ class PruebaDbHelperTest {
         assertEquals(listOf("CE-008", "RL-004"), db.obtenerEquiposConRegistros())
     }
 
+    /** Protocolos de prueba creados por "ana" (antes venían como semilla de la base). */
+    private fun insertarProtocolosDePrueba() {
+        listOf(
+            Protocolo(numero = "#000122", equipo = "CE-008", fecha = "25/09/2026", estado = "Registrado en terreno"),
+            Protocolo(numero = "#000124", equipo = "RL-004", fecha = "01/10/2026", estado = "Registrado en terreno"),
+            Protocolo(numero = "#000125", equipo = "TR-001", fecha = "02/10/2026", estado = "Formalizado")
+        ).forEach { db.insertarProtocolo(it.copy(creadoPor = "ana")) }
+    }
+
     @Test
-    fun baseNueva_incluyeLosCuatroProtocolosSemilla() {
-        val numeros = db.listarProtocolos().map { it.numero }
-        assertEquals(listOf("#000122", "#000123", "#000124", "#000125"), numeros.sorted())
+    fun baseNueva_noTraeProtocolosNiPruebas() {
+        assertTrue(db.listarProtocolos().isEmpty())
+        assertTrue(db.listarPruebas().isEmpty())
+    }
+
+    @Test
+    fun registros_guardanAlCreadorYSeFiltranPorEl() {
+        val idAna = db.insertarPrueba(prueba(equipo = "TR-001").copy(creadoPor = "ana"))
+        db.insertarPrueba(prueba(equipo = "RL-004").copy(creadoPor = "beto"))
+        insertarProtocolosDePrueba()
+
+        assertEquals("ana", db.buscarPruebaPorId(idAna)?.creadoPor)
+        assertEquals(listOf(idAna), db.listarPruebas("ana").map { it.id })
+        assertEquals(1, db.listarPruebasPorEquipo("TR-001", "ana").size)
+        assertTrue(db.listarPruebasPorEquipo("TR-001", "beto").isEmpty())
+        assertEquals(listOf("RL-004"), db.obtenerEquiposConRegistros("beto"))
+        assertEquals(2, db.listarPruebas().size)
+
+        assertEquals(3, db.listarProtocolos("ana").size)
+        assertTrue(db.listarProtocolos("beto").isEmpty())
+        assertEquals("ana", db.buscarProtocoloPorNumero("000125")?.creadoPor)
+    }
+
+    @Test
+    fun registros_seFiltranPorFechaDeCreacion() {
+        db.insertarPrueba(prueba(medicion = "1").copy(creadoPor = "ana", creadoEn = 100L))
+        val reciente = db.insertarPrueba(prueba(medicion = "2").copy(creadoPor = "ana", creadoEn = 200L))
+        db.insertarPrueba(prueba(medicion = "3"))
+        db.insertarProtocolo(Protocolo(numero = "1", equipo = "TR-001", fecha = "x", estado = "y", creadoEn = 100L))
+        db.insertarProtocolo(Protocolo(numero = "2", equipo = "TR-001", fecha = "x", estado = "y", creadoEn = 200L))
+
+        assertEquals(200L, db.buscarPruebaPorId(reciente)?.creadoEn)
+        assertEquals(listOf(reciente), db.listarPruebas(desde = 200L).map { it.id })
+        assertEquals(1, db.listarPruebasPorEquipo("TR-001", desde = 150L).size)
+        assertEquals(CatalogoEquipos.CODIGOS_POR_DEFECTO, db.obtenerEquiposConRegistros(desde = 300L))
+        assertEquals(listOf("#2"), db.listarProtocolos(desde = 200L).map { it.numero })
+        assertTrue(db.listarPruebas(creador = "beto", desde = 0L).isEmpty())
     }
 
     @Test
@@ -129,6 +173,7 @@ class PruebaDbHelperTest {
 
     @Test
     fun insertarProtocolo_conNumeroDuplicadoDevuelveError() {
+        insertarProtocolosDePrueba()
         val duplicado = Protocolo(
             numero = "000125",
             equipo = "TR-001",
@@ -140,6 +185,7 @@ class PruebaDbHelperTest {
 
     @Test
     fun buscarProtocoloPorNumero_aceptaConYSinNumeral() {
+        insertarProtocolosDePrueba()
         assertEquals("#000125", db.buscarProtocoloPorNumero("000125")?.numero)
         assertEquals("#000125", db.buscarProtocoloPorNumero("#000125")?.numero)
         assertNull(db.buscarProtocoloPorNumero("999999"))
@@ -147,6 +193,7 @@ class PruebaDbHelperTest {
 
     @Test
     fun cambiarEstadoProtocolo_formalizaUnProtocoloEnTerreno() {
+        insertarProtocolosDePrueba()
         assertEquals("Registrado en terreno", db.buscarProtocoloPorNumero("000124")?.estado)
 
         assertTrue(db.cambiarEstadoProtocolo("000124", "Formalizado"))
@@ -160,12 +207,13 @@ class PruebaDbHelperTest {
 
     @Test
     fun actualizarObservacionesProtocolo_guardaElTextoRecortado() {
+        insertarProtocolosDePrueba()
         assertTrue(db.actualizarObservacionesProtocolo("#000122", "  Revisar conexiones  "))
         assertEquals("Revisar conexiones", db.buscarProtocoloPorNumero("000122")?.observaciones)
     }
 
     @Test
-    fun onUpgrade_deVersion1CreaTablaProtocolosConSemilla() {
+    fun onUpgrade_deVersion1CreaTablaProtocolosVacia() {
         db.close()
         contexto.deleteDatabase("electra.db")
 
@@ -187,7 +235,53 @@ class PruebaDbHelperTest {
         db = PruebaDbHelper(contexto)
 
         assertEquals(1, db.listarPruebas().size)
-        assertEquals(4, db.listarProtocolos().size)
+        assertNull(db.listarPruebas().single().creadoPor)
+        assertTrue(db.listarProtocolos().isEmpty())
+        assertNotEquals(-1L, db.insertarProtocolo(Protocolo(numero = "1", equipo = "TR-001", fecha = "x", estado = "y", creadoPor = "ana")))
+        assertEquals("ana", db.listarProtocolos().single().creadoPor)
+    }
+
+    @Test
+    fun onUpgrade_deVersion3AgregaCreadorYQuitaLosProtocolosDeEjemplo() {
+        db.close()
+        contexto.deleteDatabase("electra.db")
+
+        val ruta = contexto.getDatabasePath("electra.db").apply { parentFile?.mkdirs() }
+        SQLiteDatabase.openOrCreateDatabase(ruta, null).use { v3 ->
+            v3.execSQL(
+                "CREATE TABLE pruebas (id INTEGER PRIMARY KEY AUTOINCREMENT, equipo TEXT NOT NULL, " +
+                        "tipo_prueba TEXT NOT NULL, fecha TEXT NOT NULL, hora TEXT NOT NULL, " +
+                        "medicion TEXT NOT NULL, unidad TEXT NOT NULL, resultado TEXT NOT NULL, " +
+                        "observaciones TEXT NOT NULL, foto_uri TEXT, latitud REAL, longitud REAL)"
+            )
+            v3.execSQL(
+                "CREATE TABLE protocolos (id INTEGER PRIMARY KEY AUTOINCREMENT, numero TEXT UNIQUE NOT NULL, " +
+                        "equipo TEXT NOT NULL, fecha TEXT NOT NULL, estado TEXT NOT NULL, " +
+                        "responsable TEXT NOT NULL, observaciones TEXT)"
+            )
+            v3.execSQL(
+                "INSERT INTO protocolos (numero, equipo, fecha, estado, responsable, observaciones) VALUES " +
+                        "('#000125', 'TR-001', '02/10/2026', 'Formalizado', 'Juan Pérez', 'Editada'), " +
+                        "('#000124', 'RL-004', '01/10/2026', 'Formalizado', 'Carlos Soto', NULL), " +
+                        "('#000123', 'TR-002', '28/09/2026', 'Formalizado', 'Juan Pérez', NULL), " +
+                        "('#000122', 'CE-008', '25/09/2026', 'Registrado en terreno', 'Diego Araya', NULL), " +
+                        "('#000126', 'TR-001', '05/10/2026', 'Registrado en terreno', 'Ana', 'Propio')"
+            )
+            v3.execSQL(
+                "INSERT INTO pruebas (equipo, tipo_prueba, fecha, hora, medicion, unidad, resultado, observaciones) " +
+                        "VALUES ('TR-001', 'Rigidez', '01/01/2026', '08:00', '50', 'kV', 'Aprobado', '')"
+            )
+            v3.version = 3
+        }
+
+        db = PruebaDbHelper(contexto)
+
+        assertEquals(listOf("#000126"), db.listarProtocolos().map { it.numero })
+        assertNull(db.listarProtocolos().single().creadoPor)
+        assertNull(db.listarPruebas().single().creadoPor)
+
+        val id = db.insertarPrueba(prueba().copy(creadoPor = "ana"))
+        assertEquals("ana", db.buscarPruebaPorId(id)?.creadoPor)
     }
 
     @Test
@@ -210,7 +304,7 @@ class PruebaDbHelperTest {
             )
             v2.execSQL(
                 "INSERT INTO protocolos (numero, equipo, fecha, estado, responsable) " +
-                        "VALUES ('#000125', 'TRA-001', '02/10/2026', 'Formalizado', 'Juan Pérez')"
+                        "VALUES ('#000125', 'TRA-001', '02/10/2026', 'Formalizado', 'Ana Test')"
             )
             v2.execSQL(
                 "INSERT INTO pruebas (equipo, tipo_prueba, fecha, hora, medicion, unidad, resultado, observaciones) " +

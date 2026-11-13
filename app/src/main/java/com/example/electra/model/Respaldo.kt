@@ -20,6 +20,7 @@ object Respaldo {
         appendLine("Resultado: ${prueba.resultado}")
         if (prueba.observaciones.isNotBlank()) appendLine("Observaciones: ${prueba.observaciones}")
         coordenadas(prueba)?.let { appendLine("Ubicación GPS: $it") }
+        prueba.creadoPor?.let { appendLine("Registrado por: $it") }
         appendLine()
         append("Estado: registrado en terreno (pendiente de formalización).")
     }
@@ -34,6 +35,7 @@ object Respaldo {
         }
         appendLine("Fecha: ${protocolo.fecha}")
         appendLine("Responsable: ${protocolo.responsable}")
+        protocolo.creadoPor?.let { appendLine("Creado por: $it") }
         appendLine("Estado: ${protocolo.estado}")
         if (protocolo.observaciones.isNotBlank()) appendLine("Observaciones: ${protocolo.observaciones}")
         if (pruebas.isNotEmpty()) {

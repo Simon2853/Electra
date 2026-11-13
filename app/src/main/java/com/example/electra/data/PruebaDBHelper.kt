@@ -14,7 +14,13 @@ class PruebaDbHelper(context: Context) :
 
     companion object {
         private const val NOMBRE_BD = "electra.db"
-        private const val VERSION_BD = 3
+        private const val VERSION_BD = 5
+
+        /** Login del usuario que creó el registro (misma columna en pruebas y protocolos). */
+        private const val CREADO_POR = "creado_por"
+
+        /** Momento en que se guardó el registro (epoch ms; misma columna en ambas tablas). */
+        private const val CREADO_EN = "creado_en"
 
         private const val TABLA_PRUEBAS = "pruebas"
 
@@ -44,7 +50,9 @@ class PruebaDbHelper(context: Context) :
                     "$OBSERVACIONES TEXT NOT NULL, " +
                     "$FOTO_URI TEXT, " +
                     "$LATITUD REAL, " +
-                    "$LONGITUD REAL)"
+                    "$LONGITUD REAL, " +
+                    "$CREADO_POR TEXT, " +
+                    "$CREADO_EN INTEGER)"
 
         private const val TABLA_PROTOCOLOS = "protocolos"
 
@@ -67,13 +75,26 @@ class PruebaDbHelper(context: Context) :
                     "$PROTOCOLO_FECHA TEXT NOT NULL, " +
                     "$PROTOCOLO_ESTADO TEXT NOT NULL, " +
                     "$PROTOCOLO_RESPONSABLE TEXT NOT NULL, " +
-                    "$PROTOCOLO_OBSERVACIONES TEXT)"
+                    "$PROTOCOLO_OBSERVACIONES TEXT, " +
+                    "$CREADO_POR TEXT, " +
+                    "$CREADO_EN INTEGER)"
+
+        /**
+         * Protocolos de ejemplo que versiones anteriores insertaban al crear la base. Se eliminan al
+         * actualizar a la versión 4: no pertenecen a ningún usuario y una cuenta nueva debe partir vacía.
+         * Se identifican por número + fecha + responsable (estado y observaciones pudieron cambiar).
+         */
+        private val PROTOCOLOS_DE_EJEMPLO = listOf(
+            Triple("#000125", "02/10/2026", "Juan Pérez"),
+            Triple("#000124", "01/10/2026", "Carlos Soto"),
+            Triple("#000123", "28/09/2026", "Juan Pérez"),
+            Triple("#000122", "25/09/2026", "Diego Araya")
+        )
     }
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(SQL_CREAR_TABLA_PRUEBAS)
         db.execSQL(SQL_CREAR_TABLA_PROTOCOLOS)
-        insertarDatosInicialesProtocolos(db)
     }
 
     override fun onUpgrade(
@@ -83,7 +104,6 @@ class PruebaDbHelper(context: Context) :
     ) {
         if (oldVersion < 2) {
             db.execSQL(SQL_CREAR_TABLA_PROTOCOLOS)
-            insertarDatosInicialesProtocolos(db)
         }
         if (oldVersion < 3) {
             db.execSQL("ALTER TABLE $TABLA_PRUEBAS ADD COLUMN $FOTO_URI TEXT")
@@ -97,18 +117,51 @@ class PruebaDbHelper(context: Context) :
                 )
             }
         }
+        if (oldVersion < 4) {
+            // Si la tabla se creó en este mismo upgrade (desde la v1) ya trae la columna.
+            agregarColumnaSiFalta(db, TABLA_PRUEBAS, CREADO_POR, "TEXT")
+            agregarColumnaSiFalta(db, TABLA_PROTOCOLOS, CREADO_POR, "TEXT")
+
+            PROTOCOLOS_DE_EJEMPLO.forEach { (numero, fecha, responsable) ->
+                db.delete(
+                    TABLA_PROTOCOLOS,
+                    "$PROTOCOLO_NUMERO = ? AND $PROTOCOLO_FECHA = ? AND $PROTOCOLO_RESPONSABLE = ? AND $CREADO_POR IS NULL",
+                    arrayOf(numero, fecha, responsable)
+                )
+            }
+        }
+        if (oldVersion < 5) {
+            agregarColumnaSiFalta(db, TABLA_PRUEBAS, CREADO_EN, "INTEGER")
+            agregarColumnaSiFalta(db, TABLA_PROTOCOLOS, CREADO_EN, "INTEGER")
+        }
     }
 
-    private fun insertarDatosInicialesProtocolos(db: SQLiteDatabase) {
-        db.execSQL(
-            "INSERT OR IGNORE INTO $TABLA_PROTOCOLOS " +
-                    "($PROTOCOLO_NUMERO, $PROTOCOLO_EQUIPO, $PROTOCOLO_FECHA, $PROTOCOLO_ESTADO, $PROTOCOLO_RESPONSABLE, $PROTOCOLO_OBSERVACIONES) " +
-                    "VALUES " +
-                    "('#000125', 'TR-001', '02/10/2026', 'Formalizado', 'Juan Pérez', 'Inspección aprobada sin observaciones.'), " +
-                    "('#000124', 'RL-004', '01/10/2026', 'Registrado en terreno', 'Carlos Soto', 'Pendiente firma de validación.'), " +
-                    "('#000123', 'TR-002', '28/09/2026', 'Formalizado', 'Juan Pérez', 'Ensayo funcional completado.'), " +
-                    "('#000122', 'CE-008', '25/09/2026', 'Registrado en terreno', 'Diego Araya', 'Mediciones registradas correctamente.')"
-        )
+    private fun agregarColumnaSiFalta(db: SQLiteDatabase, tabla: String, columna: String, tipo: String) {
+        val existe = db.rawQuery("PRAGMA table_info($tabla)", null).use { cursor ->
+            val indiceNombre = cursor.getColumnIndexOrThrow("name")
+            generateSequence { if (cursor.moveToNext()) cursor.getString(indiceNombre) else null }
+                .any { it == columna }
+        }
+        if (!existe) db.execSQL("ALTER TABLE $tabla ADD COLUMN $columna $tipo")
+    }
+
+    /**
+     * Cláusula WHERE para limitar los registros visibles (combinable con AND).
+     * [creador]: solo los de ese usuario; [desde]: solo los guardados desde ese momento (epoch ms).
+     * null = sin ese filtro.
+     */
+    private fun filtroVisibles(creador: String?, desde: Long?): Pair<String, Array<String>> {
+        val condiciones = mutableListOf("1 = 1")
+        val args = mutableListOf<String>()
+        if (creador != null) {
+            condiciones += "$CREADO_POR = ?"
+            args += creador
+        }
+        if (desde != null) {
+            condiciones += "$CREADO_EN >= ?"
+            args += desde.toString()
+        }
+        return condiciones.joinToString(" AND ") to args.toTypedArray()
     }
 
     fun insertarPrueba(prueba: Prueba): Long {
@@ -124,17 +177,21 @@ class PruebaDbHelper(context: Context) :
         }
     }
 
-    fun listarPruebas(): List<Prueba> {
+    /** [creador] null = pruebas de todos los usuarios. */
+    fun listarPruebas(creador: String? = null, desde: Long? = null): List<Prueba> {
+        val (filtro, args) = filtroVisibles(creador, desde)
         return consultarPruebas(
-            "SELECT * FROM $TABLA_PRUEBAS ORDER BY $ID DESC",
-            null
+            "SELECT * FROM $TABLA_PRUEBAS WHERE $filtro ORDER BY $ID DESC",
+            args
         )
     }
 
-    fun listarPruebasPorEquipo(codigoEquipo: String): List<Prueba> {
+    /** [creador] null = pruebas de todos los usuarios. */
+    fun listarPruebasPorEquipo(codigoEquipo: String, creador: String? = null, desde: Long? = null): List<Prueba> {
+        val (filtro, args) = filtroVisibles(creador, desde)
         return consultarPruebas(
-            "SELECT * FROM $TABLA_PRUEBAS WHERE TRIM($EQUIPO) = TRIM(?) ORDER BY $ID DESC",
-            arrayOf(codigoEquipo.trim())
+            "SELECT * FROM $TABLA_PRUEBAS WHERE TRIM($EQUIPO) = TRIM(?) AND $filtro ORDER BY $ID DESC",
+            arrayOf(codigoEquipo.trim()) + args
         )
     }
 
@@ -153,11 +210,13 @@ class PruebaDbHelper(context: Context) :
         )
     }
 
-    fun obtenerEquiposConRegistros(): List<String> {
+    /** [creador] null = equipos con pruebas de cualquier usuario. */
+    fun obtenerEquiposConRegistros(creador: String? = null, desde: Long? = null): List<String> {
         val equipos = mutableListOf<String>()
+        val (filtro, args) = filtroVisibles(creador, desde)
         val cursor = readableDatabase.rawQuery(
-            "SELECT DISTINCT $EQUIPO FROM $TABLA_PRUEBAS ORDER BY $EQUIPO ASC",
-            null
+            "SELECT DISTINCT $EQUIPO FROM $TABLA_PRUEBAS WHERE $filtro ORDER BY $EQUIPO ASC",
+            args
         )
         cursor.use {
             while (it.moveToNext()) {
@@ -194,6 +253,8 @@ class PruebaDbHelper(context: Context) :
                 put(PROTOCOLO_ESTADO, protocolo.estado.trim())
                 put(PROTOCOLO_RESPONSABLE, protocolo.responsable.trim())
                 put(PROTOCOLO_OBSERVACIONES, protocolo.observaciones.trim())
+                put(CREADO_POR, protocolo.creadoPor?.trim()?.ifBlank { null })
+                put(CREADO_EN, protocolo.creadoEn)
             }
             writableDatabase.insertOrThrow(TABLA_PROTOCOLOS, null, values)
         } catch (e: Exception) {
@@ -202,11 +263,13 @@ class PruebaDbHelper(context: Context) :
         }
     }
 
-    fun listarProtocolos(): List<Protocolo> {
+    /** [creador] null = protocolos de todos los usuarios. */
+    fun listarProtocolos(creador: String? = null, desde: Long? = null): List<Protocolo> {
         val lista = mutableListOf<Protocolo>()
+        val (filtro, args) = filtroVisibles(creador, desde)
         val cursor = readableDatabase.rawQuery(
-            "SELECT * FROM $TABLA_PROTOCOLOS ORDER BY $PROTOCOLO_ID DESC",
-            null
+            "SELECT * FROM $TABLA_PROTOCOLOS WHERE $filtro ORDER BY $PROTOCOLO_ID DESC",
+            args
         )
         cursor.use {
             while (it.moveToNext()) {
@@ -260,6 +323,8 @@ class PruebaDbHelper(context: Context) :
             put(FOTO_URI, prueba.fotoUri)
             put(LATITUD, prueba.latitud)
             put(LONGITUD, prueba.longitud)
+            put(CREADO_POR, prueba.creadoPor?.trim()?.ifBlank { null })
+            put(CREADO_EN, prueba.creadoEn)
         }
     }
 
@@ -289,7 +354,9 @@ class PruebaDbHelper(context: Context) :
             observaciones = cursor.getString(cursor.getColumnIndexOrThrow(OBSERVACIONES)),
             fotoUri = cursor.textoONulo(FOTO_URI),
             latitud = cursor.decimalONulo(LATITUD),
-            longitud = cursor.decimalONulo(LONGITUD)
+            longitud = cursor.decimalONulo(LONGITUD),
+            creadoPor = cursor.textoONulo(CREADO_POR),
+            creadoEn = cursor.enteroONulo(CREADO_EN)
         )
     }
 
@@ -301,6 +368,11 @@ class PruebaDbHelper(context: Context) :
     private fun Cursor.decimalONulo(columna: String): Double? {
         val indice = getColumnIndex(columna)
         return if (indice == -1 || isNull(indice)) null else getDouble(indice)
+    }
+
+    private fun Cursor.enteroONulo(columna: String): Long? {
+        val indice = getColumnIndex(columna)
+        return if (indice == -1 || isNull(indice)) null else getLong(indice)
     }
 
     private fun leerProtocolo(cursor: Cursor): Protocolo {
@@ -318,7 +390,9 @@ class PruebaDbHelper(context: Context) :
             fecha = cursor.getString(cursor.getColumnIndexOrThrow(PROTOCOLO_FECHA)),
             estado = cursor.getString(cursor.getColumnIndexOrThrow(PROTOCOLO_ESTADO)),
             responsable = cursor.getString(cursor.getColumnIndexOrThrow(PROTOCOLO_RESPONSABLE)),
-            observaciones = observacionesTexto
+            observaciones = observacionesTexto,
+            creadoPor = cursor.textoONulo(CREADO_POR),
+            creadoEn = cursor.enteroONulo(CREADO_EN)
         )
     }
 }

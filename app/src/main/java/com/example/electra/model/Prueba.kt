@@ -12,7 +12,11 @@ data class Prueba(
     val observaciones: String,
     val fotoUri: String? = null,
     val latitud: Double? = null,
-    val longitud: Double? = null
+    val longitud: Double? = null,
+    /** Usuario (login) que registró la prueba; null en registros anteriores a esta columna. */
+    val creadoPor: String? = null,
+    /** Momento en que se guardó (epoch en milisegundos); null en registros anteriores a esta columna. */
+    val creadoEn: Long? = null
 ) {
     val tieneUbicacion: Boolean get() = latitud != null && longitud != null
 }

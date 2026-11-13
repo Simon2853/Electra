@@ -37,6 +37,16 @@ class UsuariosLocalTest {
     }
 
     @Test
+    fun registrar_guardaLaFechaDeCreacionDeLaCuenta() {
+        val antes = System.currentTimeMillis()
+        UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
+
+        val creada = UsuariosLocal.creadaEn(contexto, "anatest")
+        assertTrue(creada != null && creada >= antes && creada <= System.currentTimeMillis())
+        assertTrue(UsuariosLocal.creadaEn(contexto, "noexiste") == null)
+    }
+
+    @Test
     fun validar_conContrasenaIncorrectaFalla() {
         UsuariosLocal.registrar(contexto, "Ana Test", "anatest", "Segura#2026")
         assertFalse(UsuariosLocal.validar(contexto, "anatest", "segura#2026"))

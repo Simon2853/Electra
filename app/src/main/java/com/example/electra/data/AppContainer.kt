@@ -11,10 +11,14 @@ class AppContainer(context: Context) {
 
     private val db by lazy { PruebaDbHelper(contexto) }
 
-    val pruebas: PruebasRepository by lazy { SqlitePruebasRepository(db) }
-    val protocolos: ProtocolosRepository by lazy { SqliteProtocolosRepository(db) }
     val usuarios: UsuariosRepository by lazy { LocalUsuariosRepository(contexto) }
     val sesion: SesionRepository by lazy { SesionPreferencias(contexto) }
+
+    /** Cada usuario ve solo lo que le corresponde según su rol; se recalcula en cada operación. */
+    private val alcance: suspend () -> Alcance = { alcanceActual(sesion, usuarios) }
+
+    val pruebas: PruebasRepository by lazy { SqlitePruebasRepository(db, alcance) }
+    val protocolos: ProtocolosRepository by lazy { SqliteProtocolosRepository(db, alcance) }
     val ubicacion: ProveedorUbicacion by lazy { ProveedorUbicacionAndroid(contexto) }
 
     /** Borra un archivo propio (p. ej. una foto) por su Uri; así los ViewModels no dependen de Context. */

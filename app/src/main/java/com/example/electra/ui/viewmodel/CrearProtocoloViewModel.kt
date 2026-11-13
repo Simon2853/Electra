@@ -63,7 +63,7 @@ class CrearProtocoloViewModel(
     init {
         viewModelScope.launch {
             val equipos = (CatalogoEquipos.CODIGOS + pruebas.equiposConRegistros()).distinct()
-            val numeroSugerido = siguienteNumero(protocolos.listar())
+            val numeroSugerido = protocolos.siguienteNumero()
 
             _uiState.update {
                 it.copy(
@@ -120,9 +120,4 @@ class CrearProtocoloViewModel(
     fun resultadoMostrado() {
         _uiState.update { it.copy(resultado = null) }
     }
-}
-
-fun siguienteNumero(existentes: List<Protocolo>): String {
-    val mayor = existentes.mapNotNull { it.numero.removePrefix("#").toIntOrNull() }.maxOrNull() ?: 0
-    return "#" + (mayor + 1).toString().padStart(6, '0')
 }

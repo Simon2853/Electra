@@ -12,6 +12,7 @@ package com.example.electra.model
  * | Observaciones        |   ✔     |     ✔      |   ✔   |
  * | Formalizar protocolo |   ✘     |     ✔      |   ✔   |
  * | Gestionar usuarios   |   ✘     |     ✘      |   ✔   |
+ * | Ver registros ajenos |   ✘     |     ✔      |   ✔   |
  *
  * Quien formaliza no genera los datos que revisa (separación de funciones).
  * "clave" es lo que se guarda en el almacenamiento: no cambiarla.
@@ -54,6 +55,12 @@ enum class Rol(
     );
 
     val puedeEditarObservaciones: Boolean get() = true
+
+    /**
+     * Si ve las pruebas y protocolos de todos los usuarios o solo los que creó él mismo.
+     * Quien formaliza revisa el trabajo de otros, así que necesita verlo; el técnico solo ve lo suyo.
+     */
+    val veRegistrosDeTodos: Boolean get() = puedeFormalizar
 
     /** Lista legible de permisos, para mostrar en el perfil. */
     val permisos: List<Pair<String, Boolean>>

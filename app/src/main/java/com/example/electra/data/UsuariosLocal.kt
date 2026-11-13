@@ -32,7 +32,15 @@ object UsuariosLocal {
             .putString("nombre_$clave", nombre.trim())
             .putString("hash_$clave", hash(contrasena))
             .putString("rol_$clave", rol.clave)
+            .putLong("creada_en_$clave", System.currentTimeMillis())
             .commit()
+    }
+
+    /** Momento en que se creó la cuenta (epoch ms); null en cuentas creadas antes de guardarlo. */
+    fun creadaEn(context: Context, usuario: String): Long? {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val clave = "creada_en_${usuario.trim()}"
+        return if (prefs.contains(clave)) prefs.getLong(clave, 0L) else null
     }
 
     fun rol(context: Context, usuario: String): Rol =

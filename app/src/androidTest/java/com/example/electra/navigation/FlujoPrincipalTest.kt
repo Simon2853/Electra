@@ -91,14 +91,15 @@ class FlujoPrincipalTest {
         registrarseEIngresar()
 
         compose.onAllNodesWithText("Protocolos")[0].performClick()
-        compose.esperarTexto("4 protocolo(s) encontrado(s)")
+        // Una cuenta nueva parte sin protocolos.
+        compose.esperarTexto("0 protocolo(s) encontrado(s)")
 
         compose.onNodeWithContentDescription("Nuevo Protocolo").performClick()
-        compose.esperarTexto("#000126")
+        compose.esperarTexto("#000001")
         compose.onNodeWithText("Responsable / Inspector").performTextInput("Ana Test")
         compose.onNodeWithText("Guardar protocolo").performScrollTo().performClick()
 
-        compose.esperarTexto("5 protocolo(s) encontrado(s)")
-        compose.onNodeWithText("#000126").assertExists()
+        compose.esperarTexto("1 protocolo(s) encontrado(s)")
+        compose.onNodeWithText("#000001").assertExists()
     }
 }

@@ -182,6 +182,7 @@ fun DetalleProtocolo(
                 Text("Información de certificación", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
                 FilaInfo(Icons.Outlined.CalendarToday, "Fecha de registro", protocolo.fecha)
                 FilaInfo(Icons.Outlined.Person, "Responsable", protocolo.responsable)
+                protocolo.creadoPor?.let { FilaInfo(Icons.Outlined.Person, "Creado por", it) }
                 CatalogoEquipos.buscar(protocolo.equipo)?.let {
                     FilaInfo(Icons.Outlined.LocationCity, "Instalación", "${it.instalacion} · ${it.cliente}")
                 }

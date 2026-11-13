@@ -4,6 +4,7 @@ import com.example.electra.data.ProtocolosRepositoryEnMemoria
 import com.example.electra.data.PruebasRepositoryEnMemoria
 import com.example.electra.model.CatalogoEquipos
 import com.example.electra.model.Rol
+import com.example.electra.model.siguienteNumero
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

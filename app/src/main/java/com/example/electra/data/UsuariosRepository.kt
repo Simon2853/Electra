@@ -36,6 +36,9 @@ interface UsuariosRepository {
     suspend fun actualizarRol(usuario: String, rol: Rol): Boolean
 
     suspend fun listar(): List<UsuarioResumen>
+
+    /** Momento en que se creó la cuenta (epoch ms); null en cuentas anteriores a guardar este dato. */
+    suspend fun creadaEn(usuario: String): Long?
 }
 
 /** Rol de quien tiene la sesión abierta; sin sesión se trata como el rol con menos permisos. */
@@ -51,6 +54,10 @@ class LocalUsuariosRepository(
         withContext(io) {
             UsuariosLocal.registrar(context, nombre, usuario, contrasena, rol)
         }
+
+    override suspend fun creadaEn(usuario: String): Long? = withContext(io) {
+        UsuariosLocal.creadaEn(context, usuario)
+    }
 
     override suspend fun validar(usuario: String, contrasena: String): Boolean = withContext(io) {
         UsuariosLocal.validar(context, usuario, contrasena)
