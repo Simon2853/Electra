@@ -1,5 +1,7 @@
 package com.example.electra.ui.styles
 
+import com.example.electra.ui.theme.SobrePrimario
+import com.example.electra.ui.theme.Superficie
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.height
@@ -19,7 +21,7 @@ object EstilosBoton {
     val relleno = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
 
     @Composable
-    fun coloresPrincipal() = ButtonDefaults.buttonColors(containerColor = AzulPrincipal, contentColor = Color.White)
+    fun coloresPrincipal() = ButtonDefaults.buttonColors(containerColor = AzulPrincipal, contentColor = SobrePrimario)
 
     @Composable
     fun coloresSecundario() = ButtonDefaults.outlinedButtonColors(contentColor = AzulPrincipal)
@@ -27,6 +29,7 @@ object EstilosBoton {
     @Composable
     fun elevacion() = ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 6.dp)
 
+    @Composable
     fun bordeSecundario() = BorderStroke(2.dp, AzulPrincipal)
 }
 
@@ -37,9 +40,9 @@ object EstilosCampo {
 
     @Composable
     fun colores() = OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = Color.White,
-        unfocusedContainerColor = Color.White,
-        errorContainerColor = Color.White,
+        focusedContainerColor = Superficie,
+        unfocusedContainerColor = Superficie,
+        errorContainerColor = Superficie,
         focusedBorderColor = AzulPrincipal
     )
 }
@@ -48,7 +51,7 @@ object EstilosTarjeta {
     val forma = RoundedCornerShape(16.dp)
 
     @Composable
-    fun colores() = CardDefaults.cardColors(containerColor = Color.White)
+    fun colores() = CardDefaults.cardColors(containerColor = Superficie)
 
     @Composable
     fun elevacion() = CardDefaults.cardElevation(defaultElevation = 2.dp)

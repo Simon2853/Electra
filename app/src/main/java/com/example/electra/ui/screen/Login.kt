@@ -1,5 +1,7 @@
 package com.example.electra.ui.screen
 
+import android.content.res.Configuration
+import com.example.electra.ui.theme.Superficie
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -136,7 +138,7 @@ fun Login(
                     .sacudir(estado.intentosFallidos),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
+                colors = CardDefaults.cardColors(containerColor = Superficie)
             ) {
                 Column(
                     modifier = Modifier
@@ -225,7 +227,8 @@ fun Login(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Claro")
+@Preview(showBackground = true, showSystemUi = true, name = "Oscuro", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun LoginPreview() {
     ElectraTheme {

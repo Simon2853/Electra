@@ -1,5 +1,8 @@
 package com.example.electra.ui.components
 
+import com.example.electra.ui.theme.PaletaClara
+import com.example.electra.ui.theme.Borde
+import com.example.electra.ui.theme.Superficie
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -93,11 +96,13 @@ object Avatares {
 
     fun fondo(clave: String): Color = colorPaleta(clave, Avatar.FONDO_POR_DEFECTO).color
 
-    // Texto o ícono que se lee bien encima de "fondo".
-    fun contraste(fondo: Color): Color = if (fondo.luminance() > 0.5f) AzulOscuro else Color.White
+    // Texto o ícono que se lee bien encima de "fondo". Los colores de la paleta del avatar no
+    // cambian con el tema, así que el contraste se calcula con tonos fijos (los del modo claro).
+    fun contraste(fondo: Color): Color =
+        if (fondo.luminance() > 0.5f) PaletaClara.azulOscuro else Color.White
 
     fun contrasteSecundario(fondo: Color): Color =
-        if (fondo.luminance() > 0.5f) TextoSecundario else Color.White.copy(alpha = 0.8f)
+        if (fondo.luminance() > 0.5f) PaletaClara.textoSecundario else Color.White.copy(alpha = 0.8f)
 }
 
 /**
@@ -121,7 +126,7 @@ fun AvatarUsuario(
             .shadow(elevation = 4.dp, shape = CircleShape)
             .clip(CircleShape)
             .background(fondo)
-            .border(borde, Color.White, CircleShape),
+            .border(borde, Superficie, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         if (avatar.foto != null && !fotoFallida) {
@@ -184,7 +189,7 @@ fun SelectorColor(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .border(1.dp, Color(0xFFDDE3EA), RoundedCornerShape(12.dp))
+            .border(1.dp, Borde, RoundedCornerShape(12.dp))
             .clickable { abierta = true }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -255,7 +260,7 @@ private fun MuestraColor(color: Color, activo: Boolean, tamano: Dp) {
             .background(color)
             .border(
                 width = if (activo) 3.dp else 1.dp,
-                color = if (activo) AzulOscuro else Color(0xFFDDE3EA),
+                color = if (activo) AzulOscuro else Borde,
                 shape = CircleShape
             ),
         contentAlignment = Alignment.Center

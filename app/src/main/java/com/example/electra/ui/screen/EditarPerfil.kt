@@ -1,5 +1,8 @@
 package com.example.electra.ui.screen
 
+import android.content.res.Configuration
+import com.example.electra.ui.theme.Borde
+import com.example.electra.ui.theme.Superficie
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -132,7 +135,7 @@ fun EditarPerfil(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = Superficie),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
@@ -146,7 +149,7 @@ fun EditarPerfil(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(fondo, RoundedCornerShape(14.dp))
-                            .border(1.dp, Color(0xFFDDE3EA), RoundedCornerShape(14.dp))
+                            .border(1.dp, Borde, RoundedCornerShape(14.dp))
                             .padding(vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
@@ -215,7 +218,7 @@ fun EditarPerfil(
                     .fillMaxWidth()
                     .sacudir(estado.intentosFallidos),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = Superficie),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
                 Column(
@@ -266,7 +269,8 @@ fun EditarPerfil(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Claro")
+@Preview(showBackground = true, showSystemUi = true, name = "Oscuro", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun EditarPerfilPreview() {
     ElectraTheme {

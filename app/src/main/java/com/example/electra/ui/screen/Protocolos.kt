@@ -1,5 +1,8 @@
 package com.example.electra.ui.screen
 
+import android.content.res.Configuration
+import com.example.electra.ui.theme.SobrePrimario
+import com.example.electra.ui.theme.Superficie
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,11 +67,11 @@ import com.example.electra.model.Protocolo
 import com.example.electra.ui.viewmodel.LIMITE_RECIENTES_POR_EQUIPO
 import com.example.electra.ui.viewmodel.ProtocolosViewModel
 
-private val BackgroundColor = Fondo
-private val DarkBlue = AzulOscuro
-private val MainBlue = AzulPrincipal
-private val SuccessGreen = VerdeExito
-private val Orange = NaranjaPendiente
+private val BackgroundColor: Color @Composable get() = Fondo
+private val DarkBlue: Color @Composable get() = AzulOscuro
+private val MainBlue: Color @Composable get() = AzulPrincipal
+private val SuccessGreen: Color @Composable get() = VerdeExito
+private val Orange: Color @Composable get() = NaranjaPendiente
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -109,7 +112,7 @@ fun Protocolos(
                 FloatingActionButton(
                     onClick = onCrearProtocoloClick,
                     containerColor = MainBlue,
-                    contentColor = Color.White
+                    contentColor = SobrePrimario
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
@@ -129,7 +132,7 @@ fun Protocolos(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(Superficie)
                     .padding(horizontal = 8.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -190,7 +193,7 @@ fun Protocolos(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = Superficie)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -227,8 +230,8 @@ fun Protocolos(
                                 singleLine = true,
                                 shape = RoundedCornerShape(12.dp),
                                 colors = TextFieldDefaults.colors(
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White
+                                    focusedContainerColor = Superficie,
+                                    unfocusedContainerColor = Superficie
                                 )
                             )
 
@@ -251,8 +254,8 @@ fun Protocolos(
                                     },
                                     shape = RoundedCornerShape(12.dp),
                                     colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = Color.White,
-                                        unfocusedContainerColor = Color.White
+                                        focusedContainerColor = Superficie,
+                                        unfocusedContainerColor = Superficie
                                     )
                                 )
 
@@ -291,8 +294,8 @@ fun Protocolos(
                                     },
                                     shape = RoundedCornerShape(12.dp),
                                     colors = TextFieldDefaults.colors(
-                                        focusedContainerColor = Color.White,
-                                        unfocusedContainerColor = Color.White
+                                        focusedContainerColor = Superficie,
+                                        unfocusedContainerColor = Superficie
                                     )
                                 )
 
@@ -347,7 +350,7 @@ fun Protocolos(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White)
+                            colors = CardDefaults.cardColors(containerColor = Superficie)
                         ) {
                             Column(
                                 modifier = Modifier
@@ -404,7 +407,7 @@ private fun ProtocoloListItem(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
         onClick = onClick
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
@@ -489,7 +492,8 @@ private fun EstadoProtocolo(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Claro")
+@Preview(showBackground = true, showSystemUi = true, name = "Oscuro", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun ProtocolosPreview() {
     MaterialTheme {

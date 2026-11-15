@@ -1,5 +1,6 @@
 package com.example.electra.ui.screen
 
+import com.example.electra.ui.theme.Superficie
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -311,7 +312,7 @@ private fun Tarjeta(contenido: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

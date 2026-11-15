@@ -1,5 +1,16 @@
 package com.example.electra.ui.screen
 
+import com.example.electra.ui.theme.Superficie
+import com.example.electra.ui.theme.AzulSuave
+import com.example.electra.ui.theme.Borde
+import com.example.electra.model.ModoTema
+import androidx.compose.foundation.border
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.SettingsBrightness
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -72,7 +83,9 @@ fun Perfil(
     onSesionCerrada: () -> Unit = {},
     onEditarPerfilClick: () -> Unit = {},
     onCambiarContrasenaClick: () -> Unit = {},
-    onUsuariosClick: () -> Unit = {}
+    onUsuariosClick: () -> Unit = {},
+    modoTema: ModoTema = ModoTema.POR_DEFECTO,
+    onModoTemaChange: (ModoTema) -> Unit = {}
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     var confirmarSalida by rememberSaveable { mutableStateOf(false) }
@@ -168,6 +181,16 @@ fun Perfil(
                 AccionPerfil(Icons.Outlined.LockReset, "Cambiar contraseña", "Requiere tu contraseña actual", onCambiarContrasenaClick)
             }
 
+            Tarjeta {
+                Text("Apariencia", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
+                Text(
+                    text = "Tema de la app en este dispositivo. \"Sistema\" sigue el modo claro u oscuro del teléfono.",
+                    fontSize = 13.sp,
+                    color = TextoSecundario
+                )
+                SelectorTema(actual = modoTema, onCambiar = onModoTemaChange)
+            }
+
             if (estado.rol?.puedeGestionarUsuarios == true) {
                 Tarjeta {
                     Text("Administración", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = AzulOscuro)
@@ -212,7 +235,7 @@ fun Perfil(
 }
 
 @Composable
-private fun Tarjeta(colorFondo: Color = Color.White, contenido: @Composable () -> Unit) {
+private fun Tarjeta(colorFondo: Color = Superficie, contenido: @Composable () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -221,6 +244,54 @@ private fun Tarjeta(colorFondo: Color = Color.White, contenido: @Composable () -
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             contenido()
+        }
+    }
+}
+
+private val ModoTema.icono: ImageVector
+    get() = when (this) {
+        ModoTema.SISTEMA -> Icons.Outlined.SettingsBrightness
+        ModoTema.CLARO -> Icons.Outlined.LightMode
+        ModoTema.OSCURO -> Icons.Outlined.DarkMode
+    }
+
+/** Tres opciones lado a lado (Sistema / Claro / Oscuro); el cambio se aplica al instante. */
+@Composable
+private fun SelectorTema(actual: ModoTema, onCambiar: (ModoTema) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ModoTema.entries.forEach { modo ->
+            val activo = modo == actual
+            val forma = RoundedCornerShape(12.dp)
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(forma)
+                    .background(if (activo) AzulSuave else Superficie)
+                    .border(if (activo) 2.dp else 1.dp, if (activo) AzulPrincipal else Borde, forma)
+                    .selectable(selected = activo, role = Role.RadioButton, onClick = { onCambiar(modo) })
+                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = modo.icono,
+                    contentDescription = null,
+                    tint = if (activo) AzulPrincipal else TextoSecundario,
+                    modifier = Modifier.size(22.dp)
+                )
+                Text(
+                    text = modo.nombre,
+                    fontSize = 13.sp,
+                    fontWeight = if (activo) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (activo) AzulOscuro else TextoSecundario,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

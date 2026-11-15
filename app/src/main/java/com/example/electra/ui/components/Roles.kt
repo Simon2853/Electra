@@ -1,5 +1,7 @@
 package com.example.electra.ui.components
 
+import com.example.electra.ui.theme.Borde
+import com.example.electra.ui.theme.Superficie
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +57,7 @@ val Rol.icono: ImageVector
     }
 
 private val Rol.colorTexto: Color
+    @Composable
     get() = when (this) {
         Rol.TECNICO -> AzulPrincipal
         Rol.SUPERVISOR -> VerdeExito
@@ -62,6 +65,7 @@ private val Rol.colorTexto: Color
     }
 
 private val Rol.colorFondo: Color
+    @Composable
     get() = when (this) {
         Rol.TECNICO -> AzulSuave
         Rol.SUPERVISOR -> VerdeSuave
@@ -96,10 +100,10 @@ fun SelectorRol(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(if (activo) rol.colorFondo else Color.White, RoundedCornerShape(12.dp))
+                    .background(if (activo) rol.colorFondo else Superficie, RoundedCornerShape(12.dp))
                     .border(
                         width = if (activo) 2.dp else 1.dp,
-                        color = if (activo) rol.colorTexto else Color(0xFFDDE3EA),
+                        color = if (activo) rol.colorTexto else Borde,
                         shape = RoundedCornerShape(12.dp)
                     )
                     .selectable(selected = activo, role = Role.RadioButton, onClick = { onSeleccionar(rol) })

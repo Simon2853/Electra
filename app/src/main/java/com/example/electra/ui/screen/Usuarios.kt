@@ -1,5 +1,7 @@
 package com.example.electra.ui.screen
 
+import android.content.res.Configuration
+import com.example.electra.ui.theme.Superficie
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -149,7 +151,7 @@ private fun ResumenRol(rol: Rol, cantidad: Int, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
@@ -165,7 +167,7 @@ private fun FilaUsuario(usuario: UsuarioResumen, esTuCuenta: Boolean, onClick: (
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
@@ -193,7 +195,8 @@ private fun FilaUsuario(usuario: UsuarioResumen, esTuCuenta: Boolean, onClick: (
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Claro")
+@Preview(showBackground = true, showSystemUi = true, name = "Oscuro", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun UsuariosPreview() {
     ElectraTheme {

@@ -13,6 +13,7 @@ class AppContainer(context: Context) {
 
     val usuarios: UsuariosRepository by lazy { LocalUsuariosRepository(contexto) }
     val sesion: SesionRepository by lazy { SesionPreferencias(contexto) }
+    val ajustes: AjustesRepository by lazy { AjustesPreferencias(contexto) }
 
     /** Cada usuario ve solo lo que le corresponde según su rol; se recalcula en cada operación. */
     private val alcance: suspend () -> Alcance = { alcanceActual(sesion, usuarios) }

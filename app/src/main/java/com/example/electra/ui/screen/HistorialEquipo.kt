@@ -1,5 +1,7 @@
 package com.example.electra.ui.screen
 
+import android.content.res.Configuration
+import com.example.electra.ui.theme.Superficie
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -56,10 +58,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.electra.data.PruebasRepositoryEnMemoria
 import com.example.electra.ui.viewmodel.HistorialEquipoViewModel
 
-private val BackgroundColor = Fondo
-private val DarkBlue = AzulOscuro
-private val MainBlue = AzulPrincipal
-private val SuccessGreen = VerdeExito
+private val BackgroundColor: Color @Composable get() = Fondo
+private val DarkBlue: Color @Composable get() = AzulOscuro
+private val MainBlue: Color @Composable get() = AzulPrincipal
+private val SuccessGreen: Color @Composable get() = VerdeExito
 
 data class RegistroHistorial(
     val id: Long,
@@ -109,7 +111,7 @@ fun HistorialEquipo(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White)
+                .background(Superficie)
                 .padding(horizontal = 8.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -156,7 +158,7 @@ fun HistorialEquipo(
                             .fillMaxWidth()
                             .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = Superficie),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Row(
@@ -223,7 +225,7 @@ fun HistorialEquipo(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = Superficie)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(
@@ -291,7 +293,7 @@ fun HistorialEquipo(
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Color.White)
+                        colors = CardDefaults.cardColors(containerColor = Superficie)
                     ) {
                         Text(
                             text = "No hay pruebas registradas para $equipoSeleccionado.",
@@ -339,7 +341,7 @@ private fun HistorialCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -400,14 +402,15 @@ private fun HistorialCard(
                 Text(
                     text = "Observaciones: ${registro.observaciones}",
                     fontSize = 12.sp,
-                    color = Color.DarkGray
+                    color = TextoSecundario
                 )
             }
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Claro")
+@Preview(showBackground = true, showSystemUi = true, name = "Oscuro", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun HistorialEquipoPreview() {
     MaterialTheme {

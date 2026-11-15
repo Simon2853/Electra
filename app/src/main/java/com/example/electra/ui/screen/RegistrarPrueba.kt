@@ -1,5 +1,7 @@
 package com.example.electra.ui.screen
 
+import android.content.res.Configuration
+import com.example.electra.ui.theme.Superficie
 import android.Manifest
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
@@ -339,7 +341,7 @@ private fun Tarjeta(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = Superficie),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -411,7 +413,7 @@ private fun OpcionResultado(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colorFondo by animateColorAsState(if (seleccionado) fondo else Color.White, label = "fondoResultado")
+    val colorFondo by animateColorAsState(if (seleccionado) fondo else Superficie, label = "fondoResultado")
     val colorContenido by animateColorAsState(if (seleccionado) color else TextoSecundario, label = "contenidoResultado")
 
     OutlinedButton(
@@ -551,7 +553,8 @@ private fun AvisoPermiso(texto: String, onAbrirAjustes: () -> Unit) {
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true, showSystemUi = true, name = "Claro")
+@Preview(showBackground = true, showSystemUi = true, name = "Oscuro", uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun RegistrarPruebaPreview() {
     ElectraTheme {

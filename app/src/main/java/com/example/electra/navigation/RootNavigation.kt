@@ -1,5 +1,6 @@
 package com.example.electra.navigation
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -281,7 +282,9 @@ fun RootNavigation(contenedor: AppContainer) {
                 },
                 onEditarPerfilClick = { navController.navigate(Routes.EDITAR_PERFIL) },
                 onCambiarContrasenaClick = { navController.navigate(Routes.CAMBIAR_CONTRASENA) },
-                onUsuariosClick = { navController.navigate(Routes.USUARIOS) }
+                onUsuariosClick = { navController.navigate(Routes.USUARIOS) },
+                modoTema = contenedor.ajustes.tema.collectAsStateWithLifecycle().value,
+                onModoTemaChange = contenedor.ajustes::cambiarTema
             )
         }
 

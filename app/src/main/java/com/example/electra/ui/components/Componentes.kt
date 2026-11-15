@@ -1,5 +1,7 @@
 package com.example.electra.ui.components
 
+import com.example.electra.ui.theme.SobrePrimario
+import com.example.electra.ui.theme.Superficie
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
@@ -126,9 +128,9 @@ fun CampoValidado(
             },
             shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                errorContainerColor = Color.White,
+                focusedContainerColor = Superficie,
+                unfocusedContainerColor = Superficie,
+                errorContainerColor = Superficie,
                 focusedBorderColor = AzulPrincipal
             )
         )
@@ -220,9 +222,9 @@ fun SelectorCampo(
                 isError = error != null,
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White,
-                    errorContainerColor = Color.White
+                    focusedContainerColor = Superficie,
+                    unfocusedContainerColor = Superficie,
+                    errorContainerColor = Superficie
                 )
             )
             ExposedDropdownMenu(
@@ -278,7 +280,7 @@ fun BotonCarga(
         colors = ButtonDefaults.buttonColors(
             containerColor = color,
             disabledContainerColor = color.copy(alpha = 0.6f),
-            disabledContentColor = Color.White
+            disabledContentColor = SobrePrimario
         )
     ) {
         AnimatedContent(
@@ -289,7 +291,7 @@ fun BotonCarga(
             if (estaCargando) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = Color.White,
+                    color = SobrePrimario,
                     strokeWidth = 2.5.dp
                 )
             } else {
@@ -314,7 +316,7 @@ fun BarraSuperior(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.White)
+            .background(Superficie)
             .statusBarsPadding()
             .padding(horizontal = 8.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
