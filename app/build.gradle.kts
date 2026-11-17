@@ -55,11 +55,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
 
-    implementation("com.squareup.retrofit2:retrofit:2.11.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
-
-    implementation("io.coil-kt:coil-compose:2.7.0")
-
     testImplementation("junit:junit:4.13.2")
     testImplementation(
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0"
@@ -79,4 +74,15 @@ dependencies {
     debugImplementation(
         "androidx.compose.ui:ui-test-manifest"
     )
+
+    // NUEVO (Retrofit): cliente HTTP que convierte una interfaz Kotlin en llamadas a la API REST
+    implementation("com.squareup.retrofit2:retrofit:3.0.0")
+    // NUEVO (Retrofit): convierte JSON <-> data class de Kotlin usando Gson
+    implementation("com.squareup.retrofit2:converter-gson:3.0.0")
+    // NUEVO (Corrutinas): trae viewModelScope para lanzar las llamadas de red desde el ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1")
+
+    // NUEVO (Foto en servidor): Coil descarga y muestra imágenes desde una URL (AsyncImage)
+    implementation("io.coil-kt.coil3:coil-compose:3.4.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.4.0")
 }

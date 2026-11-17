@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.electra.R
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.example.electra.model.Avatar
 import com.example.electra.ui.theme.AzulOscuro
 import com.example.electra.ui.theme.Dimens

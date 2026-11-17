@@ -79,7 +79,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
+import coil3.compose.AsyncImage
 import com.example.electra.data.PruebasRepositoryEnMemoria
 import com.example.electra.device.ArchivosEvidencia
 import com.example.electra.device.ResultadoUbicacion
