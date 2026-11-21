@@ -4,6 +4,7 @@ import com.example.electra.model.Avatar
 import com.example.electra.model.Rol
 import com.example.electra.model.UsuarioResumen
 import com.example.electra.model.CatalogoEquipos
+import com.example.electra.model.EstadosProtocolo
 import com.example.electra.model.Protocolo
 import com.example.electra.model.Prueba
 import com.example.electra.model.siguienteNumero
@@ -71,13 +72,13 @@ class ProtocolosRepositoryEnMemoria(
 
     override suspend fun siguienteNumero(): String = siguienteNumero(protocolos)
 
+    /** Igual que protocolos-service: el número y el estado inicial los asigna el repositorio, no la app. */
     override suspend fun insertar(protocolo: Protocolo): Boolean {
-        // El número es único entre todos los usuarios, no solo entre los visibles.
-        if (buscarEnTodos(protocolo.numero) != null) return false
         protocolos.add(
             protocolo.copy(
                 id = siguienteId++,
-                numero = normalizar(protocolo.numero),
+                numero = siguienteNumero(protocolos),
+                estado = EstadosProtocolo.EN_TERRENO,
                 creadoPor = alcance().usuario ?: protocolo.creadoPor,
                 creadoEn = reloj()
             )

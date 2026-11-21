@@ -109,7 +109,8 @@ fun RootNavigation(contenedor: AppContainer) {
                     }
                 },
                 onRegistroClick = { navController.navigate(Routes.REGISTRO) },
-                onRecuperarClick = { navController.navigate(Routes.RECUPERAR_CONTRASENA) }
+                onRecuperarClick = { navController.navigate(Routes.RECUPERAR_CONTRASENA) },
+                sinConexion = contenedor.conexion.sinConexion.collectAsStateWithLifecycle().value
             )
         }
 

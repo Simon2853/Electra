@@ -4,6 +4,12 @@
 
     <!-- NUEVO (Retrofit): sin este permiso la app no puede salir a internet ni llegar a la API -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!--
+        Android 17 bloquea por defecto las conexiones a la red local (10.x, 192.168.x...). Hace falta
+        para llegar al Gateway en el computador de desarrollo (10.0.2.2 desde el emulador). No se usa
+        con la URL pública del túnel de VS Code, que está en Internet.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -20,6 +26,7 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Electra">

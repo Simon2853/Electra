@@ -17,8 +17,13 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-enum class ResultadoProtocolo { CAMPOS_INCOMPLETOS, DUPLICADO, EXITO }
+/** ERROR = el servidor no guardó el protocolo (sin conexión o lo rechazó). */
+enum class ResultadoProtocolo { CAMPOS_INCOMPLETOS, ERROR, EXITO }
 
+/**
+ * El número y el estado inicial los asigna protocolos-service al guardar, para que el número sea
+ * único en toda la empresa. [numero] es solo una referencia del que probablemente le toque.
+ */
 data class CrearProtocoloUiState(
     val numero: String = "",
     val equipo: String,
@@ -28,24 +33,18 @@ data class CrearProtocoloUiState(
     val fecha: String,
     val equipos: List<String> = emptyList(),
     val mostrarErrores: Boolean = false,
-    val numeroDuplicado: Boolean = false,
     val guardando: Boolean = false,
     val intentosFallidos: Int = 0,
     val resultado: ResultadoProtocolo? = null
 ) {
-    val errorNumero: String?
-        get() = when {
-            numeroDuplicado -> "Ya existe un protocolo con ese número."
-            mostrarErrores -> Validaciones.numeroProtocolo(numero)
-            else -> null
-        }
+    val numeroReferencial get() = numero.ifBlank { "Se asigna al guardar" }
+
     val errorResponsable get() = if (mostrarErrores) Validaciones.responsable(responsable) else null
     val errorObservaciones get() = Validaciones.observaciones(observaciones)
 
-    val numeroValido get() = !numeroDuplicado && Validaciones.numeroProtocolo(numero) == null
     val responsableValido get() = Validaciones.responsable(responsable) == null
 
-    val formularioValido get() = numeroValido && responsableValido && errorObservaciones == null
+    val formularioValido get() = responsableValido && errorObservaciones == null
 }
 
 class CrearProtocoloViewModel(
@@ -69,15 +68,13 @@ class CrearProtocoloViewModel(
                 it.copy(
                     equipos = equipos,
                     equipo = if (codigoEquipoInicial.isBlank()) equipos.first() else it.equipo,
-                    numero = it.numero.ifBlank { numeroSugerido }
+                    numero = numeroSugerido
                 )
             }
         }
     }
 
-    fun onNumeroChange(valor: String) = _uiState.update { it.copy(numero = valor, numeroDuplicado = false) }
     fun onEquipoChange(valor: String) = _uiState.update { it.copy(equipo = valor) }
-    fun onEstadoChange(valor: String) = _uiState.update { it.copy(estado = valor) }
     fun onResponsableChange(valor: String) = _uiState.update { it.copy(responsable = valor) }
     fun onObservacionesChange(valor: String) = _uiState.update { it.copy(observaciones = valor) }
 
@@ -93,12 +90,11 @@ class CrearProtocoloViewModel(
             return
         }
 
-        val numero = estado.numero.trim()
         val nuevo = Protocolo(
-            numero = if (numero.startsWith("#")) numero else "#$numero",
+            numero = estado.numero, // referencial: el servidor asigna el definitivo
             equipo = estado.equipo.trim(),
             fecha = estado.fecha.trim(),
-            estado = estado.estado.trim(),
+            estado = EstadosProtocolo.EN_TERRENO,
             responsable = estado.responsable.trim(),
             observaciones = estado.observaciones.trim()
         )
@@ -109,9 +105,8 @@ class CrearProtocoloViewModel(
             _uiState.update {
                 it.copy(
                     guardando = false,
-                    numeroDuplicado = !ok,
                     intentosFallidos = if (ok) it.intentosFallidos else it.intentosFallidos + 1,
-                    resultado = if (ok) ResultadoProtocolo.EXITO else ResultadoProtocolo.DUPLICADO
+                    resultado = if (ok) ResultadoProtocolo.EXITO else ResultadoProtocolo.ERROR
                 )
             }
         }

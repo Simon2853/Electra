@@ -1,28 +1,39 @@
 package com.example.electra
 
+import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.electra.data.remote.ConfiguracionApi
 import com.example.electra.navigation.RootNavigation
+import com.example.electra.ui.components.AvisoSinConexion
 import com.example.electra.ui.theme.ElectraTheme
 import com.example.electra.ui.theme.Fondo
 
 class MainActivity : ComponentActivity() {
+
+    // Si el usuario lo rechaza, las llamadas fallan y se ve el aviso "Sin conexión con el servidor".
+    private val pedirRedLocal = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        pedirPermisoRedLocal()
 
         val contenedor = (application as ElectraApplication).contenedor
 
@@ -41,16 +52,35 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
 
+            val sinConexion by contenedor.conexion.sinConexion.collectAsStateWithLifecycle()
+
             ElectraTheme(oscuro = oscuro) {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .background(Fondo)
                         .safeDrawingPadding()
                 ) {
-                    RootNavigation(contenedor)
+                    AvisoSinConexion(visible = sinConexion)
+                    Box(modifier = Modifier.weight(1f)) {
+                        RootNavigation(contenedor)
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * Android 17 bloquea las conexiones a la red local sin el permiso ACCESS_LOCAL_NETWORK. Solo se pide
+     * cuando el backend está en la red local (emulador o mismo Wi-Fi); con la URL pública del túnel no hace falta.
+     */
+    private fun pedirPermisoRedLocal() {
+        if (Build.VERSION.SDK_INT < 37 || !ConfiguracionApi.usaRedLocal) return
+        if (checkSelfPermission(PERMISO_RED_LOCAL) == PackageManager.PERMISSION_GRANTED) return
+        pedirRedLocal.launch(PERMISO_RED_LOCAL)
+    }
+
+    private companion object {
+        const val PERMISO_RED_LOCAL = "android.permission.ACCESS_LOCAL_NETWORK"
     }
 }

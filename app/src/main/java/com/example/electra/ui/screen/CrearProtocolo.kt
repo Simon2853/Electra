@@ -69,7 +69,11 @@ fun CrearProtocolo(
 
     LaunchedEffect(estado.resultado) {
         when (estado.resultado) {
-            ResultadoProtocolo.CAMPOS_INCOMPLETOS, ResultadoProtocolo.DUPLICADO -> Vibracion.error(context)
+            ResultadoProtocolo.CAMPOS_INCOMPLETOS -> Vibracion.error(context)
+            ResultadoProtocolo.ERROR -> {
+                Vibracion.error(context)
+                Toast.makeText(context, "No se pudo guardar. Revisa la conexión e inténtalo de nuevo.", Toast.LENGTH_LONG).show()
+            }
             ResultadoProtocolo.EXITO -> {
                 Vibracion.exito(context)
                 Toast.makeText(context, "Protocolo guardado con éxito", Toast.LENGTH_SHORT).show()
@@ -108,15 +112,14 @@ fun CrearProtocolo(
                 ) {
                     TituloSeccion("Datos del protocolo")
 
+                    // El número definitivo lo asigna el servidor al guardar (único en toda la empresa).
                     CampoValidado(
-                        valor = estado.numero,
-                        onCambio = viewModel::onNumeroChange,
-                        etiqueta = "Número de protocolo",
+                        valor = estado.numeroReferencial,
+                        onCambio = {},
+                        etiqueta = "Número de protocolo (lo asigna el servidor)",
                         icono = Icons.AutoMirrored.Outlined.Assignment,
-                        error = estado.errorNumero,
-                        valido = estado.numeroValido,
-                        placeholder = "#000130",
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
+                        error = null,
+                        readOnly = true
                     )
 
                     SelectorCampo(
@@ -136,12 +139,14 @@ fun CrearProtocolo(
                         readOnly = true
                     )
 
-                    SelectorCampo(
+                    // Todo protocolo nace "Registrado en terreno"; formalizarlo es tarea del supervisor.
+                    CampoValidado(
                         valor = estado.estado,
-                        opciones = EstadosProtocolo.TODOS,
-                        onSeleccion = viewModel::onEstadoChange,
-                        etiqueta = "Estado del protocolo",
-                        icono = Icons.Outlined.Flag
+                        onCambio = {},
+                        etiqueta = "Estado inicial",
+                        icono = Icons.Outlined.Flag,
+                        error = null,
+                        readOnly = true
                     )
 
                     CampoValidado(

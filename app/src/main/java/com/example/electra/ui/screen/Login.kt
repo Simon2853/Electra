@@ -76,7 +76,9 @@ fun Login(
     viewModel: LoginViewModel,
     onLoginClick: () -> Unit,
     onRegistroClick: () -> Unit = {},
-    onRecuperarClick: () -> Unit = {}
+    onRecuperarClick: () -> Unit = {},
+    /** true si el servidor no respondió: entonces el login falló por la red, no por la contraseña. */
+    sinConexion: Boolean = false
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     var contrasenaVisible by rememberSaveable { mutableStateOf(false) }
@@ -193,7 +195,12 @@ fun Login(
                         ) {
                             Icon(Icons.Outlined.ErrorOutline, contentDescription = null, tint = RojoError)
                             Spacer(Modifier.width(8.dp))
-                            Text(text = "Usuario o contraseña incorrectos.", color = RojoError, fontSize = 13.sp)
+                            Text(
+                                text = if (sinConexion) "No se pudo conectar con el servidor. Inténtalo de nuevo."
+                                else "Usuario o contraseña incorrectos.",
+                                color = RojoError,
+                                fontSize = 13.sp
+                            )
                         }
                     }
 

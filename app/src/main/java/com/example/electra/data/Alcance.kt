@@ -11,6 +11,9 @@ package com.example.electra.data
  *   creadas antes de existir esta regla).
  *
  * Sin sesión y sin [veTodo] no se ve nada.
+ *
+ * Con los microservicios esta regla la aplica el servidor (pruebas-service y protocolos-service);
+ * aquí la usan los repositorios en memoria de las pruebas unitarias para comportarse igual.
  */
 data class Alcance(val usuario: String?, val veTodo: Boolean, val desde: Long? = null) {
 
@@ -28,15 +31,4 @@ data class Alcance(val usuario: String?, val veTodo: Boolean, val desde: Long? =
         /** Sin restricciones ni creador: para pruebas unitarias y vistas previas. */
         val TODO = Alcance(usuario = null, veTodo = true)
     }
-}
-
-/** Alcance de la sesión actual, según el rol del usuario conectado y la fecha de creación de su cuenta. */
-suspend fun alcanceActual(sesion: SesionRepository, usuarios: UsuariosRepository): Alcance {
-    val usuario = sesion.usuarioActual()?.takeIf { it.isNotBlank() }
-        ?: return Alcance(usuario = null, veTodo = false)
-    return Alcance(
-        usuario = usuario,
-        veTodo = usuarios.rol(usuario).veRegistrosDeTodos,
-        desde = usuarios.creadaEn(usuario)
-    )
 }

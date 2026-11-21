@@ -30,7 +30,8 @@ data class DetalleProtocoloUiState(
     val formalizado get() = protocolo?.estado.equals(EstadosProtocolo.FORMALIZADO, ignoreCase = true)
     val errorObservacion get() = Validaciones.observaciones(textoObservacion)
     val puedeFormalizar get() = rol?.puedeFormalizar == true
-    val puedeEditarObservaciones get() = rol?.puedeEditarObservaciones == true
+    /** Un protocolo formalizado ya no se modifica (tiene valor ante el cliente); el servidor también lo rechaza. */
+    val puedeEditarObservaciones get() = rol?.puedeEditarObservaciones == true && !formalizado
 }
 
 class DetalleProtocoloViewModel(
@@ -55,9 +56,9 @@ class DetalleProtocoloViewModel(
                 _uiState.update { it.copy(mensaje = MensajeProtocolo.SIN_PERMISO) }
                 return@launch
             }
-            repositorio.cambiarEstado(protocolo.numero, EstadosProtocolo.FORMALIZADO)
+            val ok = repositorio.cambiarEstado(protocolo.numero, EstadosProtocolo.FORMALIZADO)
             recargar()
-            _uiState.update { it.copy(mensaje = MensajeProtocolo.FORMALIZADO) }
+            _uiState.update { it.copy(mensaje = if (ok) MensajeProtocolo.FORMALIZADO else MensajeProtocolo.ERROR_ACTUALIZAR) }
         }
     }
 
