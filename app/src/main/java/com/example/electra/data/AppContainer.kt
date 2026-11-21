@@ -61,8 +61,16 @@ class AppContainer(context: Context) {
         )
     }
 
+    private val protocolosApi by lazy { retrofit.create(ProtocolosApi::class.java) }
+
     val protocolos: ProtocolosRepository by lazy {
-        RemotoProtocolosRepository(retrofit.create(ProtocolosApi::class.java), conexion, usuarioActual = sesion::usuarioActual)
+        RemotoProtocolosRepository(protocolosApi, conexion, usuarioActual = sesion::usuarioActual)
+    }
+
+    init {
+        // Mientras se muestre "sin conexión", cada 10 s se hace una consulta liviana al Gateway
+        // (el próximo número de protocolo, que no necesita sesión). Al responder, el aviso se apaga solo.
+        conexion.vigilar(alcanceApp) { conexion.llamar { protocolosApi.siguienteNumero() } }
     }
 
     val ubicacion: ProveedorUbicacion by lazy { ProveedorUbicacionAndroid(contexto) }

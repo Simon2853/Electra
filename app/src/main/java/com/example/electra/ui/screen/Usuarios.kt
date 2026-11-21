@@ -1,6 +1,7 @@
 package com.example.electra.ui.screen
 
 import android.content.res.Configuration
+import com.example.electra.ui.components.AlReconectar
 import com.example.electra.ui.theme.Superficie
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -66,6 +67,7 @@ fun Usuarios(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
+    AlReconectar { viewModel.cargar() }
 
     LaunchedEffect(estado.mensaje) {
         val texto = when (estado.mensaje) {

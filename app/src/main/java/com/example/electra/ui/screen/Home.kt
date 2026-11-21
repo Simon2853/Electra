@@ -1,6 +1,7 @@
 package com.example.electra.ui.screen
 
 import android.content.res.Configuration
+import com.example.electra.ui.components.AlReconectar
 import com.example.electra.ui.theme.Superficie
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
@@ -83,6 +84,7 @@ fun Home(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
+    AlReconectar { viewModel.cargar() }
 
     Column(
         modifier = Modifier

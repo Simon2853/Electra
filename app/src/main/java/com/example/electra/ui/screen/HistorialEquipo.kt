@@ -1,6 +1,7 @@
 package com.example.electra.ui.screen
 
 import android.content.res.Configuration
+import com.example.electra.ui.components.AlReconectar
 import com.example.electra.ui.theme.Superficie
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -101,6 +102,7 @@ fun HistorialEquipo(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
+    AlReconectar { viewModel.cargar() }
 
     Column(
         modifier = Modifier

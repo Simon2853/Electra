@@ -18,6 +18,8 @@ import com.example.electra.ui.viewmodel.ProtocolosViewModel
 import com.example.electra.ui.viewmodel.ResultadoProtocolo
 import com.example.electra.validation.Validaciones
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -270,6 +272,29 @@ class ProtocolosTest {
         assertTrue(conexion.sinConexion.value)
         assertFalse(respuesta.respondio(200))
         assertNull(respuesta.cuerpo())
+    }
+
+    @Test
+    fun conexion_sinRed_reintentaSolaCada10SegundosHastaQueElServidorVuelve() = runTest {
+        val conexion = Conexion()
+        var servidorArriba = false
+        var intentos = 0
+        conexion.llamar<Unit> { sinRed() } // se cae: aparece el aviso
+        conexion.vigilar(backgroundScope, intervaloMs = 10_000) {
+            intentos++
+            conexion.llamar { if (servidorArriba) respuesta(200, Unit) else sinRed() }
+        }
+
+        advanceTimeBy(10_001) // primer reintento: el servidor sigue caído
+        assertTrue(conexion.sinConexion.value)
+
+        servidorArriba = true
+        advanceTimeBy(10_000) // segundo reintento: responde y el aviso se apaga
+        assertFalse(conexion.sinConexion.value)
+        assertEquals(1, conexion.reconexiones.value) // las pantallas abiertas recargan sus datos
+
+        advanceTimeBy(60_000) // con conexión no se hacen más llamadas
+        assertEquals(2, intentos)
     }
 
     @Test

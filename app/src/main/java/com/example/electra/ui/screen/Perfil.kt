@@ -1,5 +1,6 @@
 package com.example.electra.ui.screen
 
+import com.example.electra.ui.components.AlReconectar
 import com.example.electra.ui.theme.Superficie
 import com.example.electra.ui.theme.AzulSuave
 import com.example.electra.ui.theme.Borde
@@ -93,6 +94,7 @@ fun Perfil(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
+    AlReconectar { viewModel.cargar() }
 
     LaunchedEffect(estado.sesionCerrada) {
         if (estado.sesionCerrada) onSesionCerrada()

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -23,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.electra.data.remote.ConfiguracionApi
 import com.example.electra.navigation.RootNavigation
 import com.example.electra.ui.components.AvisoSinConexion
+import com.example.electra.ui.components.LocalReconexiones
 import com.example.electra.ui.theme.ElectraTheme
 import com.example.electra.ui.theme.Fondo
 
@@ -56,17 +58,21 @@ class MainActivity : ComponentActivity() {
             }
 
             val sinConexion by contenedor.conexion.sinConexion.collectAsStateWithLifecycle()
+            val reconexiones by contenedor.conexion.reconexiones.collectAsStateWithLifecycle()
 
             ElectraTheme(oscuro = oscuro) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Fondo)
-                        .safeDrawingPadding()
-                ) {
-                    AvisoSinConexion(visible = sinConexion)
-                    Box(modifier = Modifier.weight(1f)) {
-                        RootNavigation(contenedor)
+                // Cada pantalla recarga sus datos cuando cambia este número (ver AlReconectar).
+                CompositionLocalProvider(LocalReconexiones provides reconexiones) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Fondo)
+                            .safeDrawingPadding()
+                    ) {
+                        AvisoSinConexion(visible = sinConexion)
+                        Box(modifier = Modifier.weight(1f)) {
+                            RootNavigation(contenedor)
+                        }
                     }
                 }
             }

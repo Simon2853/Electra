@@ -1,6 +1,7 @@
 package com.example.electra.ui.screen
 
 import android.content.res.Configuration
+import com.example.electra.ui.components.AlReconectar
 import com.example.electra.ui.theme.SobrePrimario
 import com.example.electra.ui.theme.Superficie
 import androidx.compose.foundation.background
@@ -94,6 +95,7 @@ fun Protocolos(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
+    AlReconectar { viewModel.cargar() }
 
     val opcionesFechas = remember(protocolosBd) {
         listOf("Todas") + protocolosBd.map { it.fecha }.distinct()

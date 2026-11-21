@@ -1,5 +1,6 @@
 package com.example.electra.ui.screen
 
+import com.example.electra.ui.components.AlReconectar
 import com.example.electra.ui.theme.Superficie
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
@@ -91,6 +92,7 @@ fun DetalleProtocolo(
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.cargar()
     }
+    AlReconectar { viewModel.cargar() }
 
     LaunchedEffect(estado.mensaje) {
         val texto = when (estado.mensaje) {
