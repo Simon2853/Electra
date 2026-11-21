@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firma de la app: el keystore y sus claves NO se suben al repositorio
+*.jks
+*.keystore
+keystore.properties

@@ -12,9 +12,11 @@ con **Retrofit** a través de un **API Gateway**:
 
 > Todos los datos son ficticios. No se usan protocolos reales de clientes.
 
-## Autor
+## Integrantes
 
-Proyecto desarrollado por **Simón Muñoz** (diseño, desarrollo y pruebas).
+| Nombre | Rol en el proyecto |
+|---|---|
+| **Simón Muñoz** | Proyecto individual: diseño, desarrollo de la app Android y de los microservicios, pruebas y documentación. |
 
 ## Problema que resuelve
 
@@ -44,6 +46,65 @@ transcribe días después. Electra:
 | Roles y permisos | Técnico, Supervisor y Administrador (`model/Rol.kt`). El servidor aplica la misma regla: el técnico solo ve lo suyo, el supervisor ve todo y formaliza, el administrador además gestiona usuarios. |
 | Animaciones | Transiciones entre pantallas, sacudida del formulario al fallar, mensajes de error que se despliegan, botón con progreso, barra de fortaleza de contraseña, contadores del Home, franja de conexión que aparece y desaparece. |
 | Recursos nativos (≥ 2) | **Cámara** (`TakePicture` + `FileProvider`), **GPS** (`LocationManager`, con tiempo máximo y respaldo con la última ubicación), **vibración** y **hoja de compartir** del sistema. |
+
+## Endpoints utilizados
+
+### Microservicios propios (a través del API Gateway)
+
+Todas las rutas se llaman sobre `BASE_URL` (hoy `https://zn6r5l5v-8080.brs.devtunnels.ms/`, el Gateway
+expuesto con el reenvío de puertos de VS Code). El Gateway las reenvía al microservicio según el prefijo.
+Están declaradas en `app/src/main/java/com/example/electra/data/remote/Apis.kt`; la documentación
+Swagger de cada servicio está en `http://localhost:808X/swagger-ui.html`.
+
+| Método | Ruta | Microservicio | Uso en la app |
+|---|---|---|---|
+| POST | `/api/auth/registro` | usuarios-service | Registro de cuenta (201 creada · 409 usuario repetido) |
+| POST | `/api/auth/login` | usuarios-service | Iniciar sesión (200 · 401 contraseña incorrecta) |
+| POST | `/api/auth/restablecer` | usuarios-service | Recuperar contraseña (204) |
+| GET | `/api/usuarios` | usuarios-service | Gestión de usuarios (solo administrador) |
+| GET | `/api/usuarios/{usuario}` | usuarios-service | Nombre, rol y avatar en Home y Perfil |
+| PUT | `/api/usuarios/{usuario}/nombre` | usuarios-service | Editar perfil |
+| PUT | `/api/usuarios/{usuario}/contrasena` | usuarios-service | Cambiar contraseña (204 · 401 clave actual incorrecta) |
+| PUT | `/api/usuarios/{usuario}/avatar` | usuarios-service | Foto o color del avatar |
+| PUT | `/api/usuarios/{usuario}/rol` | usuarios-service | Cambiar el rol de otro usuario (administrador) |
+| POST | `/api/pruebas` | pruebas-service | Registrar prueba eléctrica |
+| GET | `/api/pruebas?usuario=…&equipo=…` | pruebas-service | Home, historial del equipo, detalle de protocolo (filtra según el rol) |
+| GET | `/api/pruebas/equipos?usuario=…` | pruebas-service | Selector de equipos con registros |
+| GET | `/api/pruebas/{id}?usuario=…` | pruebas-service | Detalle y confirmación de la prueba |
+| POST | `/api/protocolos` | protocolos-service | Crear protocolo (el servidor asigna el número) |
+| GET | `/api/protocolos?usuario=…` | protocolos-service | Lista de protocolos y resumen del Home |
+| GET | `/api/protocolos/siguiente-numero` | protocolos-service | Número referencial al crear; también se usa para el reintento de conexión |
+| GET | `/api/protocolos/{numero}?usuario=…` | protocolos-service | Detalle del protocolo |
+| PUT | `/api/protocolos/{numero}/estado` | protocolos-service | Formalizar (supervisor o admin · 409 si ya está formalizado) |
+| PUT | `/api/protocolos/{numero}/observaciones` | protocolos-service | Editar observaciones (409 si está formalizado) |
+| POST | `/api/archivos?categoria=…&subidoPor=…` | archivos-service | Subir foto de evidencia o de perfil (multipart, campo `archivo`) |
+| GET | `/api/archivos/{id}` | archivos-service | Mostrar la foto con Coil |
+| DELETE | `/api/archivos/{id}?usuario=…` | archivos-service | Borrar la foto de perfil anterior |
+
+Ejemplo de respuesta (`POST /api/auth/login`):
+
+```json
+{ "id": 7, "usuario": "tec@demo.cl", "nombre": "Tecnico Demo", "rol": "tecnico",
+  "veRegistrosDeTodos": false, "avatar": { "color": null, "fondo": null, "foto": null }, "creadaEn": 1795278160925 }
+```
+
+### API externa: Open-Meteo
+
+Gratuita y sin clave. Se llama directo a Internet con su propio Retrofit (`data/remote/OpenMeteo.kt`),
+sin pasar por el Gateway, cuando el técnico captura el GPS en _Registrar prueba_.
+
+| Método | URL | Uso en la app |
+|---|---|---|
+| GET | `https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m,relative_humidity_2m,weather_code` | Clima actual en el lugar de la prueba |
+
+Ejemplo de respuesta (solo la parte que usa la app):
+
+```json
+{ "current": { "temperature_2m": 18.4, "relative_humidity_2m": 62, "weather_code": 2 } }
+```
+
+La app lo muestra como _"18,4 °C · 62 % humedad · Parcialmente nublado"_ y advierte si la humedad es
+≥ 80 % o hay precipitación (`model/Clima.kt`).
 
 ## Arquitectura
 
@@ -133,3 +194,29 @@ La cobertura (91 % de líneas) se mide sobre el código lógico: `model`, `valid
 navegación, tema, recursos del dispositivo, `AppContainer` y `SharedPreferences`.
 
 > Como pide la pauta, no hay pruebas de interfaz ni instrumentadas (`androidTest`): todas son unitarias.
+
+## APK firmado
+
+El APK de entrega se firma con un keystore propio (`.jks`) desde Android Studio:
+
+1. **Build → Generate Signed App Bundle or APK… → APK → Next**.
+2. **Key store path → Create new…**: guardar el archivo fuera del proyecto (p. ej. `C:\Users\<usuario>\keystores\electra.jks`),
+   con contraseña del keystore, alias `electra` y contraseña de la clave; completar al menos el nombre en _Certificate_.
+3. **Next → variante `release` → Create**.
+4. El APK queda en `app/release/app-release.apk`.
+
+> El `.jks` y sus contraseñas **no se suben a GitHub** (`.gitignore` excluye `*.jks`, `*.keystore` y
+> `keystore.properties`). Si se pierden, no se puede publicar una actualización firmada con la misma clave.
+
+El APK usa la `BASE_URL` que tenga el código al compilarlo (hoy el Gateway público), así que funciona en
+cualquier teléfono con Internet mientras el backend y el túnel de VS Code estén encendidos.
+
+### Capturas
+
+**Generación del APK firmado (ventana de firma de Android Studio):**
+
+![Generación del APK firmado](docs/capturas/apk-firmado.png)
+
+**APK firmado y keystore `.jks` generados:**
+
+![APK firmado y archivo .jks](docs/capturas/jks.png)
