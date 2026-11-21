@@ -51,6 +51,8 @@ import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Straighten
+import androidx.compose.material.icons.outlined.Thermostat
+import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -98,11 +100,14 @@ import com.example.electra.ui.theme.AzulPrincipal
 import com.example.electra.ui.theme.AzulSuave
 import com.example.electra.ui.theme.ElectraTheme
 import com.example.electra.ui.theme.Fondo
+import com.example.electra.ui.theme.NaranjaPendiente
+import com.example.electra.ui.theme.NaranjaSuave
 import com.example.electra.ui.theme.RojoError
 import com.example.electra.ui.theme.RojoSuave
 import com.example.electra.ui.theme.TextoSecundario
 import com.example.electra.ui.theme.VerdeExito
 import com.example.electra.ui.theme.VerdeSuave
+import com.example.electra.ui.viewmodel.EstadoClima
 import com.example.electra.ui.viewmodel.EstadoUbicacion
 import com.example.electra.ui.viewmodel.RegistrarPruebaUiState
 import com.example.electra.ui.viewmodel.RegistrarPruebaViewModel
@@ -311,6 +316,10 @@ fun RegistrarPrueba(
                     },
                     onAbrirAjustes = ::abrirAjustes
                 )
+
+                AnimatedVisibility(visible = estado.estadoClima != EstadoClima.SIN_CONSULTAR) {
+                    SeccionClima(estado = estado, onAgregar = viewModel::agregarClimaAObservaciones)
+                }
             }
 
             AnimatedVisibility(visible = estado.errorAlGuardar) {
@@ -534,6 +543,67 @@ private fun SeccionUbicacion(
         } else {
             TextButton(onClick = onCapturar, enabled = estado.estadoUbicacion != EstadoUbicacion.BUSCANDO) {
                 Text(if (capturada) "Actualizar" else "Capturar")
+            }
+        }
+    }
+}
+
+/**
+ * Clima en el lugar de la prueba (API externa Open-Meteo). Si la humedad es alta o llueve, avisa al
+ * técnico, porque eso puede bajar la resistencia de aislamiento medida, y le ofrece dejarlo anotado.
+ */
+@Composable
+private fun SeccionClima(estado: RegistrarPruebaUiState, onAgregar: () -> Unit) {
+    val clima = estado.clima
+    val adverso = clima?.condicionesAdversas == true
+    val colorFondo by animateColorAsState(if (adverso) NaranjaSuave else AzulSuave, label = "fondoClima")
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colorFondo, RoundedCornerShape(12.dp))
+            .padding(12.dp)
+            .animateContentSize(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (estado.estadoClima == EstadoClima.CARGANDO) {
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.5.dp)
+            } else {
+                Icon(
+                    if (adverso) Icons.Outlined.WaterDrop else Icons.Outlined.Thermostat,
+                    contentDescription = null,
+                    tint = if (adverso) NaranjaPendiente else AzulPrincipal
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Clima en el lugar", fontWeight = FontWeight.SemiBold, color = AzulOscuro, fontSize = 14.sp)
+                Text(
+                    text = when (estado.estadoClima) {
+                        EstadoClima.CARGANDO -> "Consultando Open-Meteo..."
+                        EstadoClima.LISTO -> clima?.resumen.orEmpty()
+                        else -> "No se pudo obtener el clima. La prueba se puede registrar igual."
+                    },
+                    fontSize = 12.sp,
+                    color = TextoSecundario
+                )
+            }
+        }
+        if (adverso) {
+            Text(
+                text = "Humedad alta o precipitación: pueden bajar la resistencia de aislamiento. " +
+                    "Conviene dejarlo en las observaciones.",
+                fontSize = 12.sp,
+                color = NaranjaPendiente
+            )
+        }
+        if (clima != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Datos: Open-Meteo", fontSize = 11.sp, color = TextoSecundario, modifier = Modifier.weight(1f))
+                TextButton(onClick = onAgregar, enabled = !estado.climaEnObservaciones) {
+                    Text(if (estado.climaEnObservaciones) "Agregado a observaciones" else "Agregar a observaciones")
+                }
             }
         }
     }

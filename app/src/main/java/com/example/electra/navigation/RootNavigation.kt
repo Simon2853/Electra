@@ -170,7 +170,9 @@ fun RootNavigation(contenedor: AppContainer) {
 
             ConPermiso({ it.puedeRegistrarPruebas }, "registrar pruebas") {
                 RegistrarPrueba(
-                    viewModel = viewModel { RegistrarPruebaViewModel(contenedor.pruebas, contenedor.ubicacion, codigoEquipo) },
+                    viewModel = viewModel {
+                        RegistrarPruebaViewModel(contenedor.pruebas, contenedor.ubicacion, codigoEquipo, climaRepositorio = contenedor.clima)
+                    },
                     onVolverClick = { navController.popBackStack() },
                     onPruebaGuardada = { id ->
 

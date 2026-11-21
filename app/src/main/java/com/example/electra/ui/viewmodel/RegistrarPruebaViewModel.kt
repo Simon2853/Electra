@@ -2,10 +2,13 @@ package com.example.electra.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.electra.data.ClimaFijo
+import com.example.electra.data.ClimaRepository
 import com.example.electra.data.PruebasRepository
 import com.example.electra.device.Coordenadas
 import com.example.electra.device.ProveedorUbicacion
 import com.example.electra.device.ResultadoUbicacion
+import com.example.electra.model.Clima
 import com.example.electra.model.OpcionesPrueba
 import com.example.electra.model.Prueba
 import com.example.electra.validation.Validaciones
@@ -20,6 +23,9 @@ import java.util.Locale
 
 enum class EstadoUbicacion { SIN_CAPTURAR, BUSCANDO, CAPTURADA, SIN_PERMISO, GPS_DESACTIVADO, NO_DISPONIBLE }
 
+/** Clima del lugar (API externa Open-Meteo); se consulta al capturar la ubicación. */
+enum class EstadoClima { SIN_CONSULTAR, CARGANDO, LISTO, NO_DISPONIBLE }
+
 data class RegistrarPruebaUiState(
     val equipo: String,
     val tipoPrueba: String = OpcionesPrueba.TIPOS.first(),
@@ -32,6 +38,8 @@ data class RegistrarPruebaUiState(
     val fotoUri: String? = null,
     val coordenadas: Coordenadas? = null,
     val estadoUbicacion: EstadoUbicacion = EstadoUbicacion.SIN_CAPTURAR,
+    val clima: Clima? = null,
+    val estadoClima: EstadoClima = EstadoClima.SIN_CONSULTAR,
     val mostrarErrores: Boolean = false,
     val guardando: Boolean = false,
     val intentosFallidos: Int = 0,
@@ -40,6 +48,9 @@ data class RegistrarPruebaUiState(
     val ahora: Date = Date()
 ) {
     val rechazada get() = resultado == OpcionesPrueba.RECHAZADO
+
+    /** Las condiciones ya se copiaron a las observaciones (no se ofrece agregarlas dos veces). */
+    val climaEnObservaciones get() = clima != null && observaciones.contains(clima.textoObservacion)
 
     val errorEquipo get() = if (mostrarErrores) Validaciones.equipo(equipo) else null
     val errorMedicion get() = if (mostrarErrores) Validaciones.medicion(medicion) else null
@@ -59,6 +70,7 @@ class RegistrarPruebaViewModel(
     private val pruebas: PruebasRepository,
     private val ubicacion: ProveedorUbicacion,
     codigoEquipo: String,
+    private val climaRepositorio: ClimaRepository = ClimaFijo(),
     private val reloj: () -> Date = { Date() }
 ) : ViewModel() {
 
@@ -104,7 +116,24 @@ class RegistrarPruebaViewModel(
                     ResultadoUbicacion.NoDisponible -> it.copy(estadoUbicacion = EstadoUbicacion.NO_DISPONIBLE)
                 }
             }
+            if (resultado is ResultadoUbicacion.Exito) consultarClima(resultado.coordenadas)
         }
+    }
+
+    /** Pide a Open-Meteo el clima en las coordenadas capturadas; si falla, la prueba se registra igual. */
+    private suspend fun consultarClima(coordenadas: Coordenadas) {
+        _uiState.update { it.copy(estadoClima = EstadoClima.CARGANDO) }
+        val clima = climaRepositorio.actual(coordenadas.latitud, coordenadas.longitud)
+        _uiState.update {
+            it.copy(clima = clima, estadoClima = if (clima != null) EstadoClima.LISTO else EstadoClima.NO_DISPONIBLE)
+        }
+    }
+
+    /** Deja constancia del clima en las observaciones, después de lo que ya escribió el técnico. */
+    fun agregarClimaAObservaciones() = _uiState.update {
+        val clima = it.clima
+        if (clima == null || it.climaEnObservaciones) it
+        else it.copy(observaciones = listOf(it.observaciones.trim(), clima.textoObservacion).filter(String::isNotBlank).joinToString("\n"))
     }
 
     fun guardar() {

@@ -8,6 +8,7 @@ import com.example.electra.data.remote.Conexion
 import com.example.electra.data.remote.ConfiguracionApi
 import com.example.electra.data.remote.ProtocolosApi
 import com.example.electra.data.remote.PruebasApi
+import com.example.electra.data.remote.RemotoClimaRepository
 import com.example.electra.data.remote.RemotoProtocolosRepository
 import com.example.electra.data.remote.RemotoPruebasRepository
 import com.example.electra.data.remote.RemotoUsuariosRepository
@@ -65,6 +66,9 @@ class AppContainer(context: Context) {
     }
 
     val ubicacion: ProveedorUbicacion by lazy { ProveedorUbicacionAndroid(contexto) }
+
+    /** API externa (Open-Meteo): no pasa por el API Gateway ni por nuestros microservicios. */
+    val clima: ClimaRepository by lazy { RemotoClimaRepository.crear() }
 
     /**
      * Borra una foto que ya no se usa (p. ej. la foto de perfil anterior), esté en el teléfono o en el
