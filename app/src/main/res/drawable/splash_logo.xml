@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Ícono del Splash Screen. Android lo dibuja en un área de 240dp y lo recorta con un círculo de 160dp,
+    así que el logo va al centro con 112dp: cabe completo dentro del círculo, sin cortarse.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:width="240dp"
+        android:height="240dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+    <item
+        android:width="112dp"
+        android:height="112dp"
+        android:drawable="@drawable/logo"
+        android:gravity="center" />
+</layer-list>

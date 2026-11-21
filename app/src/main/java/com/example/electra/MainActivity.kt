@@ -9,6 +9,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
@@ -31,6 +32,8 @@ class MainActivity : ComponentActivity() {
     private val pedirRedLocal = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Muestra el Splash (Theme.Electra.Splash) mientras la app arranca; debe ir antes de super.onCreate.
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         pedirPermisoRedLocal()

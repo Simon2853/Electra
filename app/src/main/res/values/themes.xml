@@ -2,4 +2,14 @@
 <resources>
 
     <style name="Theme.Electra" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+        Tema del Splash Screen: Android lo muestra apenas se toca el ícono, antes de que cargue la app.
+        Logo de Electra centrado sobre el color de fondo de la app; al terminar se pasa a Theme.Electra.
+    -->
+    <style name="Theme.Electra.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/fondo_splash</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.Electra</item>
+    </style>
 </resources>

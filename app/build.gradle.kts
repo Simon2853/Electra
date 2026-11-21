@@ -41,6 +41,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
+    // Splash Screen oficial de Android (funciona igual desde Android 7 hasta las versiones nuevas)
+    implementation("androidx.core:core-splashscreen:1.2.0")
+
     implementation(platform(libs.androidx.compose.bom))
 
     implementation(libs.androidx.compose.ui)

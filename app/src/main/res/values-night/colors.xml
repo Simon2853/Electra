@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fondo del Splash en modo oscuro: el mismo de la app (PaletaOscura.fondo) -->
+    <color name="fondo_splash">#FF0E1620</color>
+</resources>

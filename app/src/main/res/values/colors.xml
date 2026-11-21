@@ -8,4 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="sombra_imagen">#B3173B57</color>
+    <!-- Fondo del Splash: el mismo de la app (PaletaClara.fondo); en modo oscuro lo cambia values-night -->
+    <color name="fondo_splash">#FFF4F7FA</color>
 </resources>
