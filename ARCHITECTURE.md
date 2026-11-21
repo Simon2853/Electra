@@ -1,63 +1,97 @@
 # Arquitectura de Electra
 
-> **Actualización 24/10/2026 (Evaluación Parcial 2).** Varios hallazgos de la §4 quedaron resueltos:
-> sesión persistente (`SesionPreferencias` + `startDestination` según sesión, Perfil accesible desde Home),
-> catálogo único de equipos (`CatalogoEquipos.EQUIPOS`), `Prueba.kt`/`Protocolo.kt` legados eliminados,
-> número de protocolo = mayor existente + 1, sin valores por defecto silenciosos en las rutas, Home con
-> datos reales (`HomeViewModel`), credenciales excluidas de los respaldos, colores en `ui/theme/Color.kt`
-> y dependencias sin uso eliminadas (Room, DataStore, window-size-class, MockK).
-> Paquetes nuevos: `validation/` (reglas puras por campo), `device/` (cámara, GPS, vibración, compartir)
-> y `ui/components/` (campo validado, selector, botón con carga, barra superior, animaciones).
-> La base `electra.db` pasa a la **versión 3** (columnas `foto_uri`, `latitud`, `longitud` en `pruebas`).
-> Ver [README.md](README.md) para el resumen de funcionalidades.
+> **Actualización 21/11/2026 (Evaluación Final).** La app deja de guardar los datos en el teléfono
+> (SQLite y `SharedPreferences` de usuarios) y pasa a consumir **microservicios** con Retrofit a
+> través de un API Gateway. Se agregan la API externa Open-Meteo, el Splash Screen, el reintento
+> automático de conexión y 78 pruebas unitarias con 91 % de cobertura.
+> El backend está en el repositorio [Electra-Backend](https://github.com/Simon2853/Electra-Backend).
 
-> Revisión realizada el 23/10/2026 sobre el código de `app/src/main`.
-> **Autor:** Simón Muñoz · simon.munoz952@gmail.com
+**Autor:** Simón Muñoz · simon.munoz952@gmail.com
 
 Electra es una app Android nativa (Kotlin + Jetpack Compose) para que técnicos de terreno
 registren **pruebas eléctricas** sobre equipos (transformadores, relés, celdas, cables) y
-gestionen **protocolos** de inspección. Funciona 100 % offline: no hay backend ni red.
+gestionen **protocolos** de inspección que luego un supervisor formaliza.
 
 ## 1. Stack y configuración
 
 | Aspecto | Valor |
 |---|---|
 | Módulos Gradle | uno solo: `:app` |
-| Lenguaje / UI | Kotlin 2.2.10, Jetpack Compose (BOM 2026.02.01), Material 3 |
+| Lenguaje / UI | Kotlin (integrado en AGP 9.4.1), Jetpack Compose (BOM 2026.02.01), Material 3 |
 | SDK | `minSdk 24`, `targetSdk/compileSdk 37`, Java 11 |
 | Navegación | `navigation-compose` 2.9.5 (rutas tipo *string*) |
-| Persistencia | `SQLiteOpenHelper` (SQLite directo) + `SharedPreferences` |
+| Red | **Retrofit 3** + Gson, OkHttp compartido; **Coil 3** para las fotos del servidor |
+| Datos | Microservicios del backend (MySQL). En el teléfono solo la sesión y el tema (`SharedPreferences`) |
+| API externa | Open-Meteo (clima actual por coordenadas, sin clave) |
+| Inicio | `core-splashscreen` 1.2.0 (`Theme.Electra.Splash`) |
+| Pruebas | JUnit 4, `kotlinx-coroutines-test`, JaCoCo 0.8.14 |
 | Actividades | una: `MainActivity` (single-activity) |
 
-## 2. Estructura de paquetes
+## 2. Vista general: app + backend
+
+```mermaid
+flowchart LR
+    subgraph Teléfono
+        APP[App Electra]
+    end
+    APP -- "Retrofit<br/>BASE_URL" --> GW[API Gateway :8080]
+    APP -- "Retrofit propio" --> OM[Open-Meteo]
+    GW --> EU[Eureka :8761]
+    GW --> U[usuarios-service :8081]
+    GW --> P[pruebas-service :8082]
+    GW --> PR[protocolos-service :8083]
+    GW --> A[archivos-service :8084]
+    P -. Feign .-> U
+    PR -. Feign .-> U
+    PR -. Feign .-> P
+    U --> DBU[(electra_usuarios)]
+    P --> DBP[(electra_pruebas)]
+    PR --> DBPR[(electra_protocolos)]
+    A --> DBA[(electra_archivos<br/>+ carpeta uploads)]
+```
+
+- La app **solo conoce al Gateway**. El Gateway pregunta a Eureka dónde está cada servicio y le
+  reenvía la petición según la ruta (`/api/usuarios/**`, `/api/pruebas/**`, …).
+- La dirección del Gateway está en un único lugar: `ConfiguracionApi.BASE_URL`
+  (`http://10.0.2.2:8080/` en el emulador, o la URL pública del reenvío de puertos de VS Code en un teléfono físico).
+- Las reglas de negocio importantes se validan **en el servidor** (quién ve qué, quién formaliza, que un
+  protocolo formalizado no se modifique). La app repite las validaciones de formularios para avisar antes de enviar.
+
+## 3. Estructura de paquetes
 
 ```
 com.example.electra
 ├── ElectraApplication.kt      Application: crea y expone el AppContainer
-├── MainActivity.kt            Punto de entrada: tema + RootNavigation(contenedor)
+├── MainActivity.kt            Splash, permiso de red local, tema, aviso sin conexión y RootNavigation
 ├── navigation/
 │   ├── Routes.kt              Constantes de rutas y helpers para armar rutas con argumentos
 │   └── RootNavigation.kt      NavHost: grafo completo, crea los ViewModels por destino
-├── model/
-│   ├── Prueba.kt              Data class de una prueba eléctrica
-│   ├── Protocolo.kt           Data class de un protocolo
-│   └── CatalogoEquipos.kt     Códigos de equipo por defecto (antes duplicados en 4 lugares)
+├── model/                     Prueba, Protocolo, Rol, Clima, Avatar, ModoTema, CatalogoEquipos, Respaldo
+├── validation/Validaciones.kt Reglas de validación puras (sin Android)
 ├── data/
-│   ├── AppContainer.kt        Inyección manual: una única PruebaDbHelper + repositorios
-│   ├── PruebasRepository.kt   Interfaz + SqlitePruebasRepository (I/O en Dispatchers.IO)
-│   ├── ProtocolosRepository.kt Interfaz + SqliteProtocolosRepository
-│   ├── UsuariosRepository.kt  Interfaz + LocalUsuariosRepository
-│   ├── RepositoriosEnMemoria.kt Implementaciones en memoria para previews y tests
-│   ├── PruebaDBHelper.kt      SQLite "electra.db" (tablas pruebas y protocolos)
-│   ├── UsuariosLocal.kt       Usuarios en SharedPreferences (hash SHA-256)
-│   └── SesionPreferencias.kt  Id de técnico en sesión (SharedPreferences) — sin uso
+│   ├── AppContainer.kt        Inyección manual: crea Retrofit, Conexion y los repositorios
+│   ├── *Repository.kt         Interfaces que usan los ViewModels (usuarios, pruebas, protocolos, clima, ajustes)
+│   ├── SesionPreferencias.kt  Usuario con sesión abierta (SharedPreferences)
+│   ├── AjustesRepository.kt   Tema claro / oscuro / sistema (SharedPreferences)
+│   ├── Alcance.kt             Regla de qué registros ve cada rol (la usan los repositorios en memoria)
+│   ├── RepositoriosEnMemoria.kt Implementaciones en memoria para pruebas unitarias y vistas previas
+│   └── remote/
+│       ├── ConfiguracionApi.kt BASE_URL, cliente OkHttp compartido y Retrofit
+│       ├── Apis.kt            Interfaces Retrofit: UsuariosApi, PruebasApi, ProtocolosApi, ArchivosApi
+│       ├── Dtos.kt            JSON que envían y reciben los microservicios
+│       ├── Conexion.kt        Captura fallos de red, estado "sin conexión" y reintento automático
+│       ├── ArchivosRemoto.kt  Sube fotos locales a archivos-service antes de guardar el registro
+│       ├── Remoto*Repository.kt Implementaciones que llaman a los microservicios
+│       └── OpenMeteo.kt       API externa del clima
+├── device/                    Cámara (archivos de evidencia), GPS, vibración, compartir
 └── ui/
-    ├── theme/                 ElectraTheme (Material 3, colores dinámicos), tipografía
+    ├── theme/                 ElectraTheme (Material 3), paleta corporativa, tipografía
+    ├── components/            Campos validados, botones, barra superior, AvisoSinConexion, avatares
     ├── viewmodel/             Un ViewModel por pantalla con datos (StateFlow)
-    └── screen/                Pantallas Compose (+ Prueba.kt legado)
+    └── screen/                Pantallas Compose
 ```
 
-## 3. Vista por capas
+## 4. Vista por capas
 
 ```mermaid
 flowchart TD
@@ -67,167 +101,182 @@ flowchart TD
     NAV -- "viewModel { XViewModel(repo) }" --> VM[ViewModels<br/>ui/viewmodel]
     NAV --> S[Pantallas Compose<br/>ui/screen]
     S -- "collectAsStateWithLifecycle / eventos" --> VM
-    VM -- suspend --> R[Repositorios<br/>interfaces en data/]
-    R -- "withContext(IO)" --> DB[(PruebaDbHelper<br/>electra.db)]
-    R -- "withContext(IO)" --> UP[(UsuariosLocal<br/>electra_usuarios)]
-    SP[(SesionPreferencias<br/>electra_sesion)]:::unused
-    classDef unused stroke-dasharray: 5 5,opacity:0.6
+    VM -- suspend --> R[Interfaces de repositorio<br/>data/]
+    R --> RR[Remoto*Repository<br/>data/remote]
+    RR -- "Conexion.llamar" --> API[Retrofit → API Gateway]
+    R --> CL[RemotoClimaRepository] --> OM[Open-Meteo]
+    R --> SP[(SharedPreferences<br/>sesión y tema)]
 ```
 
 La app sigue **MVVM con repositorios**:
 
 - **Pantallas**: renderizan el `uiState` del ViewModel y le envían eventos. Solo guardan estado
-  efímero de UI (menús abiertos, diálogos, campos de Login/Registro/RegistrarPrueba).
+  efímero de UI (menús abiertos, diálogos).
 - **ViewModels**: exponen `StateFlow<XUiState>`, validan, llaman al repositorio dentro de
-  `viewModelScope` y publican resultados de una sola vez (`resultado`, `mensaje`,
-  `ingresoExitoso`) que la pantalla muestra como Toast o navegación y luego marca como consumidos.
-- **Repositorios**: interfaces con funciones `suspend`. Las implementaciones reales hacen el I/O
-  en `Dispatchers.IO`; las de memoria permiten previews y tests sin disco.
-- **AppContainer**: crea una sola `PruebaDbHelper` compartida. `RootNavigation` lo recibe por
-  parámetro, así los tests inyectan uno aislado.
+  `viewModelScope` y publican resultados de una sola vez (`resultado`, `mensaje`) que la pantalla
+  muestra como Toast o navegación y luego marca como consumidos.
+- **Repositorios**: interfaces con funciones `suspend`. Al pasar de SQLite a los microservicios
+  **solo se cambiaron las implementaciones** en `AppContainer`; ViewModels y pantallas quedaron igual.
+- **Pruebas unitarias**: crean los repositorios remotos con APIs falsas (`Apoyo.kt`) o usan los
+  repositorios en memoria, así se prueba toda la lógica sin servidor ni emulador.
 
-Los ViewModels se crean con `viewModel { … }` dentro de cada `composable(...)`, así quedan
-asociados a la entrada del back stack y sobreviven a la rotación.
+### 4.1 Pantallas y ViewModels
 
-### 3.1 Capa de presentación (`ui/screen` + `ui/viewmodel`)
-
-Cada pantalla recibe su ViewModel y lambdas de navegación (`onBackClick`, `onNavigate(route)`,
-etc.), lo que la desacopla del `NavController`. Las listas que deben reflejar cambios al volver
-atrás llaman a `viewModel.cargar()` en `LifecycleEventEffect(ON_RESUME)`.
-
-| Pantalla | ViewModel | Repositorio | Operaciones |
+| Pantalla | ViewModel | Repositorios | Microservicio |
 |---|---|---|---|
-| `Login` | `LoginViewModel` | `UsuariosRepository` | validar usuario/contraseña |
-| `Registro` | `RegistroViewModel` | `UsuariosRepository` | validar formulario (`validarRegistro`) y crear usuario |
-| `Home` | — | estático | accesos rápidos, actividad reciente fija |
-| `Equipos` | — | lista fija en código (5 equipos) | búsqueda y filtro por tipo |
-| `DetalleEquipo` | — | parámetro `codigo` + datos fijos | navegar a prueba / historial / protocolos |
-| `RegistrarPrueba` | `RegistrarPruebaViewModel` | `PruebasRepository` | validar medición, insertar |
-| `HistorialEquipo` | `HistorialEquipoViewModel` | `PruebasRepository` | equipos con registros, pruebas por equipo |
-| `DetallePrueba` | `DetallePruebaViewModel` | `PruebasRepository` | buscar por id |
-| `Protocolos` | `ProtocolosViewModel` | `ProtocolosRepository` | listar (los filtros quedan en la UI) |
-| `CrearProtocolo` | `CrearProtocoloViewModel` | `ProtocolosRepository`, `PruebasRepository` | estado del formulario, número sugerido, insertar |
-| `DetalleProtocolo` | `DetalleProtocoloViewModel` | `ProtocolosRepository` | buscar, formalizar, editar observaciones |
-| `Perfil` | — | estático | logout (navega a Login), sync sin implementar |
-| `ConfirmacionPrueba` | — | estático | — |
+| `Login` | `LoginViewModel` | usuarios, sesión | usuarios (`/api/auth/login`) |
+| `Registro` | `RegistroViewModel` | usuarios | usuarios (`/api/auth/registro`) |
+| `RecuperarContrasena` | `RecuperarContrasenaViewModel` | usuarios | usuarios (`/api/auth/restablecer`) |
+| `Home` | `HomeViewModel` | pruebas, protocolos, usuarios, sesión | pruebas, protocolos, usuarios |
+| `Equipos`, `DetalleEquipo` | — | catálogo fijo (`CatalogoEquipos`) | — |
+| `RegistrarPrueba` | `RegistrarPruebaViewModel` | pruebas, ubicación, clima | archivos (foto) + pruebas; Open-Meteo |
+| `HistorialEquipo` | `HistorialEquipoViewModel` | pruebas | pruebas |
+| `DetallePrueba`, `ConfirmacionPrueba` | `DetallePruebaViewModel` | pruebas | pruebas |
+| `Protocolos` | `ProtocolosViewModel` | protocolos | protocolos |
+| `CrearProtocolo` | `CrearProtocoloViewModel` | protocolos, pruebas | protocolos (`siguiente-numero`, crear) |
+| `DetalleProtocolo` | `DetalleProtocoloViewModel` | protocolos, pruebas | protocolos (formalizar, observaciones) |
+| `Perfil` | `PerfilViewModel` | usuarios, sesión, pruebas, protocolos | usuarios, pruebas, protocolos |
+| `EditarPerfil` | `EditarPerfilViewModel` | usuarios, sesión | usuarios + archivos (foto de perfil) |
+| `CambiarContrasena` | `CambiarContrasenaViewModel` | usuarios, sesión | usuarios |
+| `Usuarios` (solo admin) | `UsuariosViewModel` | usuarios, sesión | usuarios (cambiar rol) |
 
-### 3.2 Navegación (`navigation`)
+Las pantallas con listas llaman a `viewModel.cargar()` en `ON_RESUME` y también con `AlReconectar { }`
+cuando vuelve la conexión con el servidor.
 
-Grafo único con `startDestination = login`. Las rutas con argumentos se arman con
-`String.replace("{codigo}", …)` o con los helpers `Routes.detallePrueba()` / `Routes.protocolo()`.
+### 4.2 Navegación
+
+`startDestination` es `home` si hay sesión guardada y `login` si no. Las rutas con argumentos se arman
+con los helpers de `Routes` (`detallePrueba(id)`, `protocolo(numero)`, …). El número de protocolo se pasa
+**sin `#`** en la ruta (el `#` rompería la URI) y el servidor lo acepta con o sin él.
 
 ```mermaid
 flowchart LR
     login --> registro
+    login --> recuperar_contrasena
     login -->|popUpTo login| home
     home --> equipos --> detalle_equipo["detalle_equipo/{codigo}"]
     home --> registrar_prueba["registrar_prueba/{codigo}"]
     home --> historial["historial_equipo/{codigo}"]
     home --> protocolos
+    home --> perfil
     detalle_equipo --> registrar_prueba
     detalle_equipo --> historial
     detalle_equipo --> protocolos
+    registrar_prueba --> confirmacion["confirmacion_prueba/{idPrueba}"]
     historial --> detalle_prueba["detalle_prueba/{idPrueba}"]
     protocolos --> protocolo["protocolo/{numero}"]
     protocolos --> crear_protocolo
-    perfil:::orphan -->|logout| login
-    confirmacion_prueba:::orphan
-    classDef orphan stroke-dasharray: 5 5
+    perfil --> editar_perfil
+    perfil --> cambiar_contrasena
+    perfil --> usuarios
+    perfil -->|cerrar sesión| login
 ```
 
-El número de protocolo se pasa **sin `#`** en la ruta (el `#` rompería la URI) y
-`PruebaDbHelper` lo busca tanto con como sin `#`.
+## 5. Capa de red (`data/remote`)
 
-### 3.3 Capa de datos (`data`)
+### 5.1 Retrofit
 
-**`PruebaDbHelper`** (`electra.db`, versión 5):
+- `ConfiguracionApi.retrofit` usa `BASE_URL`, `GsonConverterFactory` y un `OkHttpClient` compartido con
+  Coil (tiempos de espera de 10/20/30 s y el encabezado que omite la página de aviso de los túneles de VS Code).
+- Cada endpoint es una función `suspend` en `Apis.kt` que devuelve `Response<T>`, para revisar el código
+  HTTP: `201` creado, `401` contraseña incorrecta, `404` no existe, `409` conflicto (usuario repetido o
+  protocolo formalizado), `503` servicio caído.
+- Los DTOs (`Dtos.kt`) se convierten a los modelos de la app (`Prueba`, `Protocolo`, `UsuarioResumen`)
+  dentro de los repositorios remotos.
 
-| Tabla | Columnas | Notas |
-|---|---|---|
-| `pruebas` | `id` PK autoinc, `equipo`, `tipo_prueba`, `fecha`, `hora`, `medicion`, `unidad`, `resultado`, `observaciones`, `foto_uri`, `latitud`, `longitud`, `creado_por`, `creado_en` | `creado_por` = login de quien la registró; `creado_en` = epoch ms |
-| `protocolos` | `id` PK autoinc, `numero` UNIQUE, `equipo`, `fecha`, `estado`, `responsable`, `observaciones`, `creado_por`, `creado_en` | estado: "Registrado en terreno" / "Formalizado"; sin filas semilla |
+### 5.2 Errores de red y reconexión (`Conexion`)
 
-- Fechas y horas se guardan como texto (`dd/MM/yyyy`, `HH:mm`); las mediciones también son texto.
-- No hay relación por clave foránea entre equipos, pruebas y protocolos: se vinculan por el código del equipo como string.
-- `onUpgrade`: 1 → 2 crea `protocolos`; 2 → 3 agrega foto y GPS; 3 → 4 agrega `creado_por` y borra los 4 protocolos de ejemplo que se insertaban antes; 4 → 5 agrega `creado_en`.
-- **Registros por usuario** (`data/Alcance.kt`): los repositorios consultan en cada operación el usuario de la sesión. Al insertar guardan `creado_por` y `creado_en`; al consultar, el técnico solo ve lo suyo y los roles con `Rol.veRegistrosDeTodos` (supervisor y administrador) ven lo de todos, pero **solo lo registrado desde que se creó su cuenta** (`creada_en_<usuario>` en las preferencias de usuarios). Así toda cuenta nueva parte sin pruebas ni protocolos, sea cual sea su rol. No se puede ver ni modificar un registro fuera del alcance por número o id. El número correlativo de protocolo se calcula sobre todos los usuarios porque es único.
-- Cuentas creadas antes de guardar `creada_en` no tienen ese límite y siguen viendo todo. Los registros anteriores a la v4/v5 (sin `creado_por`/`creado_en`) solo los ven esas cuentas antiguas de supervisor o administrador.
-- Los errores de inserción se capturan y se devuelven como `-1L`.
+```mermaid
+stateDiagram-v2
+    [*] --> Conectado
+    Conectado --> SinConexion: IOException o 502/503/504
+    SinConexion --> SinConexion: reintento cada 10 s (siguiente-numero)
+    SinConexion --> Conectado: el servidor responde (reconexiones + 1)
+```
 
-**`UsuariosLocal`**: usuarios en `SharedPreferences` `electra_usuarios`
-con claves `nombre_<usuario>` y `hash_<usuario>` (SHA-256 sin sal).
+- Toda llamada pasa por `conexion.llamar { … }`: si falla la red devuelve `null` en vez de lanzar una
+  excepción, así la app nunca se cierra por un error de red.
+- `sinConexion` muestra la franja roja `AvisoSinConexion` en todas las pantallas.
+- `vigilar` reintenta cada 10 s mientras no haya conexión. Al volver, `reconexiones` aumenta y
+  `AlReconectar` recarga la pantalla abierta.
+- Android 17 exige el permiso `ACCESS_LOCAL_NETWORK` para llegar a `10.0.2.2`; `MainActivity` lo pide
+  solo si `BASE_URL` es una dirección local. `network_security_config.xml` permite HTTP sin cifrar solo
+  para `10.0.2.2` y `localhost` (la URL pública es HTTPS).
 
-**`SesionPreferencias`**: guarda el id del técnico en sesión, pero **no se usa** en ningún lugar.
+### 5.3 Fotos (`ArchivosRemoto`)
 
-### 3.4 Flujo típico: registrar una prueba
+1. La cámara guarda la foto en el teléfono (`FileProvider`).
+2. Al guardar la prueba o el perfil, `ArchivosRemoto.preparar` la sube a `archivos-service` (multipart).
+3. El servidor devuelve una **ruta relativa** (`/api/archivos/{id}`); se guarda esa ruta en el registro.
+4. Si la subida falla, **no** se registra la prueba y la foto local se conserva para reintentar.
+5. Para mostrarla, `ConfiguracionApi.urlCompleta` le antepone la `BASE_URL` actual y Coil la descarga.
+   Por eso las fotos siguen funcionando aunque cambie la URL pública del túnel.
+
+### 5.4 API externa: Open-Meteo
+
+- `RemotoClimaRepository` tiene su propio Retrofit hacia `https://api.open-meteo.com/` y **no pasa** por
+  el Gateway ni por `Conexion`: si el clima falla no aparece el aviso de servidor caído y se puede
+  registrar la prueba igual.
+- Al capturar el GPS en _Registrar prueba_ se consulta temperatura, humedad y código WMO.
+- Regla de negocio (`Clima.condicionesAdversas`): humedad ≥ 80 % o precipitación → se advierte que el
+  ambiente puede alterar la medición (p. ej. la resistencia de aislamiento) y se ofrece agregarlo a las observaciones.
+
+## 6. Roles y alcance de los datos
+
+| Permiso | Técnico | Supervisor | Admin |
+|---|:-:|:-:|:-:|
+| Registrar prueba / crear protocolo | ✔ | ✘ | ✔ |
+| Editar observaciones (si no está formalizado) | ✔ | ✔ | ✔ |
+| Formalizar protocolo | ✘ | ✔ | ✔ |
+| Gestionar usuarios y roles | ✘ | ✘ | ✔ |
+| Ver registros de otros | ✘ | ✔ | ✔ |
+
+`model/Rol.kt` es la única fuente de permisos en la app (oculta botones y valida en los ViewModels).
+El servidor aplica la misma regla: las consultas envían `?usuario=<login>` y pruebas-service /
+protocolos-service filtran según el rol que obtienen de usuarios-service por Feign.
+
+## 7. Flujo típico: registrar una prueba
 
 1. `Home`/`DetalleEquipo` → `registrar_prueba/{codigo}`.
-2. `RegistrarPrueba` arma un `model.Prueba` con el formulario y llama a `RegistrarPruebaViewModel.guardar()`.
-3. El ViewModel valida la medición e inserta con `PruebasRepository` (en `Dispatchers.IO`), y publica
-   `resultado = EXITO | ERROR | MEDICION_VACIA`.
-4. La pantalla muestra el Toast y, si fue `EXITO`, hace `popBackStack()`.
-5. `HistorialEquipo` llama a `cargar()` en `ON_RESUME` y muestra la nueva fila; al tocarla abre `detalle_prueba/{id}`.
+2. El técnico completa el formulario, toma la foto y captura el GPS; la tarjeta del clima se llena con Open-Meteo.
+3. `RegistrarPruebaViewModel.guardar()` valida todo con `Validaciones` (medición numérica, fecha no
+   futura, motivo obligatorio si es rechazada).
+4. `RemotoPruebasRepository.insertar` sube la foto a archivos-service y luego hace `POST /api/pruebas`
+   con la ruta de la foto y el usuario de la sesión.
+5. Con `201` la app vibra, abre la confirmación y borra la copia local de la foto. Sin conexión
+   muestra el error y el formulario queda como estaba.
+6. `HistorialEquipo` recarga en `ON_RESUME` y muestra la nueva prueba comparada con la anterior.
 
-## 4. Hallazgos de la revisión
+## 8. Pruebas unitarias
 
-### Riesgos / defectos
+| Archivo | Pruebas |
+|---|---:|
+| `AutenticacionTest.kt` | 17 |
+| `PerfilTest.kt` | 17 |
+| `PruebasElectricasTest.kt` | 22 |
+| `ProtocolosTest.kt` | 22 |
+| **Total** | **78** |
 
-1. ~~**I/O en el hilo principal.**~~ **Resuelto (23/10/2026):** todo el acceso a SQLite y a
-   SharedPreferences pasa por repositorios que usan `Dispatchers.IO`, llamados desde ViewModels.
-2. **La sesión no persiste.** `Login` no llama a `SesionPreferencias.guardar()` y el grafo
-   siempre arranca en `login`; el usuario debe autenticarse en cada arranque.
-3. **Pantallas inalcanzables.** Ninguna pantalla navega a `perfil` (y por tanto al logout)
-   ni a `confirmacion_prueba`. `ui/screen/Protocolo.kt` no está registrado en el grafo.
-4. **Catálogo de equipos inconsistente.** Las cuatro listas duplicadas ahora usan
-   `CatalogoEquipos.CODIGOS_POR_DEFECTO`, pero `Equipos.kt` sigue con su propia lista (incluye
-   `CB-012`) y los protocolos semilla usan códigos `TRA-001`, `REL-025` que no existen en
-   ninguna. No hay tabla `equipos`.
-5. **Clase `Prueba` duplicada.** `ui/screen/Prueba.kt` define otra `Prueba` (sin `id`) y un
-   `RegistroPruebas` en memoria que ya no se usan; se confunde fácilmente con `model.Prueba`.
-6. **Seguridad de credenciales.** SHA-256 sin sal ni estiramiento y `allowBackup="true"`:
-   los hashes viajan en los respaldos. Para algo local conviene PBKDF2 + sal y excluir
-   `electra_usuarios` en `backup_rules.xml` / `data_extraction_rules.xml`.
-7. **Numeración de protocolos frágil.** `CrearProtocolo` calcula el número como
-   `count + 126`; si se borra o ya existe un número, choca con el `UNIQUE` y falla el guardado.
-8. **Valores por defecto silenciosos.** Si falta un argumento de ruta se usa `"TR-001"`,
-   `"000125"` o `1L`, mostrando datos de otro registro en vez de un error.
-9. **`Home` con accesos fijos a `TR-001`**, incluido el ícono de notificaciones, y
-   actividad reciente estática.
+- `Apoyo.kt` define `MainDispatcherRule` (reemplaza `Dispatchers.Main` en la JVM) y APIs falsas
+  (`UsuariosApiFalsa`, `PruebasApiFalsa`, `ProtocolosApiFalsa`, `ArchivosApiFalsa`, `OpenMeteoFalsa`)
+  que responden con los mismos códigos HTTP que los microservicios o simulan la falta de red.
+- Nombres con el formato `accion_condicion_resultado`, por ejemplo
+  `formalizar_comoTecnico_noTienePermiso`.
+- Cobertura con JaCoCo (`.\gradlew verificarCoberturaPruebas`): **91 % de líneas** de `model`,
+  `validation`, `ui/viewmodel` y `data`. Se excluyen las partes que necesitan Android en ejecución
+  (pantallas, navegación, tema, dispositivo, `AppContainer`, `SharedPreferences`).
 
-### Deuda en dependencias
+## 9. Decisiones y pendientes
 
-`app/build.gradle.kts` declara bibliotecas que no se usan: **Room** (además sin plugin
-KSP, no funcionaría), **Retrofit/Gson**, **DataStore**, **Coil**, **window-size-class** y
-**MockK**. Las versiones literales deberían pasar a `libs.versions.toml`. (Ya se quitó el
-`lifecycle-runtime-ktx` duplicado: lifecycle se toma del catálogo, 2.11.0, con
-`lifecycle-viewmodel-compose` y `lifecycle-runtime-compose`.)
-
-### Otros
-
-- `ElectraTheme` conserva la paleta púrpura de la plantilla y usa color dinámico, mientras
-  las pantallas pintan colores fijos (`0xFF173B57`, `0xFF1769AA`…) repetidos en cada archivo.
-- Las pantallas son largas (300–650 líneas) mezclando lógica y UI; hay componentes casi
-  iguales repetidos (barras superiores, filas de información).
-- Tests: ver la cobertura en [PROCESO.md](PROCESO.md) §7.
-
-## 5. Evolución recomendada
-
-Orden sugerido, de mayor a menor impacto:
-
-1. ~~**ViewModel + Repositorio por feature**~~ **Hecho (23/10/2026).** Ver §3.
-2. **Migrar a Room** (ya está en dependencias): entidades `Equipo`, `Prueba`, `Protocolo`
-   con claves foráneas, DAOs con `Flow` (elimina la recarga manual en `ON_RESUME`) y
-   migraciones explícitas.
-3. **Sesión real**: persistir el usuario (DataStore) al iniciar sesión, elegir la
-   `startDestination` según haya sesión y exponer el acceso a `Perfil` desde `Home`.
-4. **Fuente única de equipos** en BD, reemplazando las listas fijas.
-5. **Limpieza**: borrar `ui/screen/Prueba.kt` y `Protocolo.kt` (o enlazarlo), quitar
-   dependencias sin uso y centralizar colores en el tema.
-6. Navegación con rutas tipadas (`@Serializable`) de navigation-compose 2.8+ para evitar
-   el `replace("{codigo}", …)` manual.
+- **Inyección manual** (`AppContainer`) en vez de Hilt: pocas dependencias y se entiende fácil.
+- **Sin caché offline**: si el servidor no responde, la app avisa y reintenta, pero no guarda cambios
+  para enviarlos después. Una mejora futura sería Room como caché con sincronización.
+- **Catálogo de equipos fijo** en `CatalogoEquipos`; podría pasar a su propio microservicio.
+- **La URL pública cambia** con cada túnel de VS Code: hay que actualizar `BASE_URL` y recompilar.
+  Una mejora sería poder configurarla desde la app.
 
 ---
 
 **Simón Muñoz**\
 simon.munoz952@gmail.com\
-23/10/2026
+21/11/2026
