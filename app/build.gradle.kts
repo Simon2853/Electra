@@ -16,8 +16,6 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -68,20 +66,7 @@ dependencies {
         "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0"
     )
 
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
-
-    androidTestImplementation(platform(libs.androidx.compose.bom))
-
-    androidTestImplementation(
-        "androidx.compose.ui:ui-test-junit4"
-    )
-
     debugImplementation(libs.androidx.compose.ui.tooling)
-
-    debugImplementation(
-        "androidx.compose.ui:ui-test-manifest"
-    )
 
     // NUEVO (Retrofit): cliente HTTP que convierte una interfaz Kotlin en llamadas a la API REST
     implementation("com.squareup.retrofit2:retrofit:3.0.0")

@@ -132,5 +132,4 @@ La cobertura (91 % de líneas) se mide sobre el código lógico: `model`, `valid
 `data` (incluidos los repositorios remotos). Se excluye lo que necesita Android en ejecución: pantallas,
 navegación, tema, recursos del dispositivo, `AppContainer` y `SharedPreferences`.
 
-> `app/src/androidTest` conserva pruebas instrumentadas de la evaluación anterior; no forman parte de
-> esta entrega y requieren el backend levantado.
+> Como pide la pauta, no hay pruebas de interfaz ni instrumentadas (`androidTest`): todas son unitarias.
