@@ -151,8 +151,10 @@ Más detalle en [ARCHITECTURE.md](ARCHITECTURE.md) y [PROCESO.md](PROCESO.md).
 ## Cómo ejecutar
 
 1. Levantar el backend y comprobar que en http://localhost:8761 aparezcan los 5 servicios en estado UP.
-2. Revisar la dirección del Gateway en `app/src/main/java/com/example/electra/data/remote/ConfiguracionApi.kt`:
-   - **Emulador** (backend en el mismo computador): `http://10.0.2.2:8080/` (valor por defecto).
+2. Ajustar `BASE_URL` en `app/src/main/java/com/example/electra/data/remote/ConfiguracionApi.kt`.
+   Hoy apunta a la URL pública del túnel de VS Code (`https://zn6r5l5v-8080.brs.devtunnels.ms/`), que solo
+   responde mientras ese túnel y el backend del autor estén encendidos. Para probarlo en otro computador hay que cambiarla:
+   - **Emulador** (backend en el mismo computador): `http://10.0.2.2:8080/`.
    - **Teléfono físico**: la URL pública del reenvío del puerto 8080 en VS Code (pestaña _Puertos_,
      visibilidad _Public_), por ejemplo `https://abc123-8080.brs.devtunnels.ms/`. Debe terminar en `/`
      y cambia cada vez que se crea el túnel.
