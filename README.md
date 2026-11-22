@@ -18,6 +18,37 @@ con **Retrofit** a través de un **API Gateway**:
 |---|---|
 | **Simón Muñoz** | Proyecto individual: diseño, desarrollo de la app Android y de los microservicios, pruebas y documentación. |
 
+## Planificación (Trello)
+
+Tablero público: 👉 [trello.com/b/aMKRXJcc/electra](https://trello.com/b/aMKRXJcc/electra)
+
+La planificación se organizó en **5 semanas** (23 oct – 22 nov). Cada semana tiene una tarjeta de título y
+sus actividades, con etiqueta (_App Android_, _Backend_, _Pruebas_, _Entrega_, _Documentación_), fechas,
+checklist y responsable. Como es un proyecto individual, todas las tarjetas están asignadas a Simón Muñoz.
+
+| Semana | Fechas | Objetivo |
+|---|---|---|
+| 1 | 23–29 oct | App base: estructura, navegación, registrar prueba con cámara y GPS |
+| 2 | 3–9 nov | Cuentas de usuario: recuperar contraseña, editar perfil y cambiar contraseña |
+| 3 | 10–14 nov | Roles, foto de perfil, pruebas asociadas a su usuario y tema claro/oscuro |
+| 4 | 15–19 nov | Preparación para el backend: Retrofit, Coil, pruebas de ViewModels y diseño de los microservicios |
+| 5 | 20–22 nov | Microservicios, integración con la app, Open-Meteo, Splash, pruebas con cobertura y entrega |
+
+> El tablero se armó al final del proyecto para registrar la planificación semanal. El avance real de cada
+> tarea se puede verificar en el historial de commits de [Electra](https://github.com/Simon2853/Electra/commits/main)
+> y [Electra-Backend](https://github.com/Simon2853/Electra-Backend/commits/main); la implementación de los
+> microservicios se concentró en la semana 5.
+
+### Capturas del tablero
+
+La lista _Hecho_ completa, de la semana 1 a la 5:
+
+![Trello: semana 1 y 2](docs/capturas/trello-1.png)
+![Trello: semana 2 y 3](docs/capturas/trello-2.png)
+![Trello: semana 4 y 5](docs/capturas/trello-3.png)
+![Trello: semana 5, microservicios e integración](docs/capturas/trello-4.png)
+![Trello: semana 5, pruebas y entrega](docs/capturas/trello-5.png)
+
 ## Problema que resuelve
 
 Hoy el cliente no recibe ningún respaldo en el momento de la prueba: el técnico anota en papel y
