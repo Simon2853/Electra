@@ -18,3 +18,6 @@ local.properties
 *.jks
 *.keystore
 keystore.properties
+
+# APK/AAB generados al firmar (se entregan por la plataforma, no en GitHub)
+/app/release/
