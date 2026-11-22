@@ -221,10 +221,10 @@ cualquier teléfono con Internet mientras el backend y el túnel de VS Code est�
 
 ### Capturas
 
-**Generación del APK firmado (ventana de firma de Android Studio):**
+**APK Firmado** (verificación de la firma con `apksigner`):
 
 ![Generación del APK firmado](docs/capturas/apk-firmado.png)
 
-**APK firmado y keystore `.jks` generados:**
+**Llave generada** (keystore `electra.jks` con el alias `electra`):
 
 ![APK firmado y archivo .jks](docs/capturas/jks.png)
