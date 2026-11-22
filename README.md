@@ -205,6 +205,14 @@ El APK de entrega se firma con un keystore propio (`.jks`) desde Android Studio:
 3. **Next → variante `release` → Create**.
 4. El APK queda en `app/release/app-release.apk`.
 
+**Configuración técnica en `app/build.gradle.kts`:** el bloque `signingConfigs { release }` firma la
+variante release con los datos de `keystore.properties` (ruta del `.jks`, alias y contraseñas). Para usarlo:
+
+1. Copiar [`keystore.properties.example`](keystore.properties.example) como `keystore.properties` y completar las contraseñas.
+2. Ejecutar `.\gradlew assembleRelease` → `app/build/outputs/apk/release/app-release.apk` firmado.
+
+Si `keystore.properties` no existe, el proyecto compila igual y se firma con la ventana de Android Studio.
+
 > El `.jks` y sus contraseñas **no se suben a GitHub** (`.gitignore` excluye `*.jks`, `*.keystore` y
 > `keystore.properties`). Si se pierden, no se puede publicar una actualización firmada con la misma clave.
 

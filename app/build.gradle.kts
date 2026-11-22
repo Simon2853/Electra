@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -18,12 +20,36 @@ android {
         versionName = "1.0"
     }
 
+    // FIRMA DEL APK (release)
+    // Los datos del keystore se leen de keystore.properties (en la raíz del proyecto, excluido de
+    // GitHub por .gitignore) para no publicar las contraseñas. Plantilla: keystore.properties.example
+    //   .\gradlew assembleRelease  -> app/build/outputs/apk/release/app-release.apk (firmado)
+    // Si el archivo no existe, el proyecto compila igual y se puede firmar desde
+    // Build -> Generate Signed App Bundle or APK.
+    val archivoKeystore = rootProject.file("keystore.properties")
+    val datosKeystore = Properties().apply {
+        if (archivoKeystore.exists()) archivoKeystore.inputStream().use { load(it) }
+    }
+    signingConfigs {
+        if (archivoKeystore.exists()) {
+            create("release") {
+                storeFile = file(datosKeystore.getProperty("storeFile"))
+                storePassword = datosKeystore.getProperty("storePassword")
+                keyAlias = datosKeystore.getProperty("keyAlias")
+                keyPassword = datosKeystore.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // JaCoCo registra qué líneas ejecutan las pruebas unitarias (ver tarea coberturaPruebas al final)
             enableUnitTestCoverage = true
         }
         release {
+            if (archivoKeystore.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             optimization {
                 enable = false
             }
